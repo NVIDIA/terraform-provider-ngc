@@ -183,6 +183,23 @@ make testacc
         }
     ```
 
+## Executing Acceptence Test
+
+1. Setup environment variables
+
+```sh
+export NGC_ORG=shhh2i6mga69 # Your ORG
+export NGC_TEAM=devinfra    # (Optional) Your TEAM
+export NGC_API_KEY=nvapi-REDACTED # Your NGC Personal Key
+export NGC_ENDPOINT=https://api.ngc.nvidia.com # (Optional) The NGC Endpoint
+```
+
+2. Run the test
+
+```sh
+make testacc
+```
+
 ## Backlog
 
 1. NVCF-1536: Implement NVCF Terraform Provider Unit Tests

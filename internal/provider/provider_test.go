@@ -12,7 +12,7 @@ import (
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"nvidia_cloud_function": providerserver.NewProtocol6WithError(New("acctest")()),
+	"ngc": providerserver.NewProtocol6WithError(New("acctest")()),
 }
 
 func testAccPreCheck(t *testing.T) {
