@@ -278,7 +278,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, funct
 	tflog.Debug(ctx, "Delete Function Deployment")
 
 	if response.StatusCode != 204 {
-		return fmt.Errorf("failed to delete function version %d", response.StatusCode)
+		return fmt.Errorf("failed to delete function version %s", response.Header.Get("X-Nv-Error-Msg"))
 	}
 
 	return nil
@@ -287,6 +287,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, funct
 type NvidiaCloudFunctionDeploymentSpecification struct {
 	Gpu                   string      `json:"gpu"`
 	Backend               string      `json:"backend"`
+	InstanceType          string      `json:"instanceType"`
 	MaxInstances          int         `json:"maxInstances"`
 	MinInstances          int         `json:"minInstances"`
 	MaxRequestConcurrency int         `json:"maxRequestConcurrency"`
@@ -339,7 +340,7 @@ func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	tflog.Debug(ctx, "Create Function Deployment")
 
 	if response.StatusCode != 200 {
-		return &createNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to create function deployment %d", response.StatusCode)
+		return &createNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to create function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
 	}
 
 	err = json.Unmarshal(body, &createNvidiaCloudFunctionDeploymentResponse)
@@ -386,7 +387,7 @@ func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	tflog.Debug(ctx, "Update Function Deployment")
 
 	if response.StatusCode != 200 {
-		return &updateNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to update function deployment %d", response.StatusCode)
+		return &updateNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to update function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
 	}
 
 	err = json.Unmarshal(body, &updateNvidiaCloudFunctionDeploymentResponse)
@@ -491,7 +492,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	tflog.Debug(ctx, "Delete Function Deployment")
 
 	if response.StatusCode != 200 {
-		return &deleteNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to delete function deployment %d", response.StatusCode)
+		return &deleteNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to delete function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
 	}
 
 	err = json.Unmarshal(body, &deleteNvidiaCloudFunctionDeploymentResponse)

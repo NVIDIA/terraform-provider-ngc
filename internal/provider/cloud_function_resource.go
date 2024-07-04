@@ -35,6 +35,7 @@ type NvidiaCloudFunctionDeploymentSpecificationModel struct {
 	MinInstances          types.Int64  `tfsdk:"min_instances"`
 	MaxRequestConcurrency types.Int64  `tfsdk:"max_request_concurrency"`
 	Configuration         types.String `tfsdk:"configuration"`
+	InstanceType          types.String `tfsdk:"instance_type"`
 }
 
 type NvidiaCloudFunctionResourceModel struct {
@@ -87,6 +88,7 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
+				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
 				MaxInstances:          types.Int64Value(int64(v.MaxInstances)),
 				MinInstances:          types.Int64Value(int64(v.MinInstances)),
@@ -124,6 +126,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 
 			d := utils.NvidiaCloudFunctionDeploymentSpecification{
 				Backend:               v.Backend.ValueString(),
+				InstanceType:          v.InstanceType.ValueString(),
 				Gpu:                   v.GpuType.ValueString(),
 				MaxInstances:          int(v.MaxInstances.ValueInt64()),
 				MinInstances:          int(v.MinInstances.ValueInt64()),
@@ -178,7 +181,11 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 					Optional:            true,
 				},
 				"backend": schema.StringAttribute{
-					MarkdownDescription: "NVCF Backend, default is GFN.",
+					MarkdownDescription: "NVCF Backend.",
+					Optional:            true,
+				},
+				"instance_type": schema.StringAttribute{
+					MarkdownDescription: "NVCF Backend Instance Type.",
 					Required:            true,
 				},
 				"gpu_type": schema.StringAttribute{

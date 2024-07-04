@@ -72,6 +72,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 
 			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
+				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
 				MaxInstances:          types.Int64Value(int64(v.MaxInstances)),
 				MinInstances:          types.Int64Value(int64(v.MinInstances)),
