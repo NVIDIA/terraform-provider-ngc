@@ -191,7 +191,7 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to read NGC Cloud Function versions",
+			"Failed to read Cloud Function versions",
 			"Got unexpected result when reading Cloud Function",
 		)
 	}
@@ -221,7 +221,7 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 		// FIXME: extract error messsage to constants.
 		if err.Error() != "failed to find function deployment" {
 			resp.Diagnostics.AddError(
-				"Failed to read NGC Cloud Function deployment",
+				"Failed to read Cloud Function deployment",
 				err.Error(),
 			)
 		}

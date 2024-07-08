@@ -145,7 +145,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 
 		if err != nil {
 			diag.AddError(
-				"Failed to create NGC Cloud Function Deployment",
+				"Failed to create Cloud Function Deployment",
 				err.Error(),
 			)
 		}
@@ -158,7 +158,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 
 		if err != nil {
 			diag.AddError(
-				"Failed to create NGC Cloud Function Deployment",
+				"Failed to create Cloud Function Deployment",
 				err.Error(),
 			)
 		}
@@ -274,7 +274,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			},
 			"endpoint_path": schema.StringAttribute{
 				MarkdownDescription: "Service endpoint Path. Default is \"/\"",
-				Optional:            true,
+				Required:            true,
 			},
 			"health_endpoint_path": schema.StringAttribute{
 				MarkdownDescription: "Service health endpoint Path. Default is \"/v2/health/ready\"",
@@ -334,7 +334,7 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to create NGC Cloud Function",
+			"Failed to create Cloud Function",
 			"Got unexpected result when creating Cloud Function",
 		)
 	}
@@ -373,12 +373,12 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	var listNvidiaCloudFunctionVersionsResponse, err = r.client.ListNvidiaCloudFunctionVersions(ctx, utils.ListNvidiaCloudFunctionVersionsRequest{
-		data.Id.ValueString(),
+		FunctionId: data.Id.ValueString(),
 	})
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to read NGC Cloud Function versions",
+			"Failed to read Cloud Function versions",
 			"Got unexpected result when reading Cloud Function",
 		)
 	}
@@ -408,7 +408,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		// FIXME: extract error messsage to constants.
 		if err.Error() != "failed to find function deployment" {
 			resp.Diagnostics.AddError(
-				"Failed to read NGC Cloud Function deployment",
+				"Failed to read Cloud Function deployment",
 				err.Error(),
 			)
 		}
@@ -448,7 +448,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to update NGC Cloud Function",
+			"Failed to update Cloud Function",
 			"Got unexpected result when updating Cloud Function",
 		)
 	}
@@ -461,7 +461,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete NGC Cloud Function version %s", plan.VersionId.ValueString()),
+				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionId.ValueString()),
 				err.Error(),
 			)
 		}
@@ -477,7 +477,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete NGC Cloud Function version %s", plan.VersionId.ValueString()),
+				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionId.ValueString()),
 				err.Error(),
 			)
 		}
@@ -497,7 +497,7 @@ func (r *NvidiaCloudFunctionResource) Delete(ctx context.Context, req resource.D
 	err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, data.Id.ValueString(), data.VersionId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Failed to delete NGC Cloud Function version %s", data.VersionId.ValueString()),
+			fmt.Sprintf("Failed to delete Cloud Function version %s", data.VersionId.ValueString()),
 			err.Error(),
 		)
 	}

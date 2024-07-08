@@ -33,6 +33,51 @@ func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
 	return c.httpClient
 }
 
+func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any) error {
+	var request *http.Request
+
+	if requestBody != nil {
+		payloadBuf := new(bytes.Buffer)
+		json.NewEncoder(payloadBuf).Encode(requestBody)
+		request, _ = http.NewRequest(method, requestURL, payloadBuf)
+	} else {
+		request, _ = http.NewRequest(method, requestURL, nil)
+	}
+
+	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
+	request.Header.Set("Content-Type", "application/json")
+
+	response, err := c.httpClient.Do(request)
+
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("failed to send request to %s with method %s", requestURL, method))
+		return err
+	}
+
+	ctx = tflog.SetField(ctx, "response_status", response.Status)
+	ctx = tflog.SetField(ctx, "response_header", response.Header)
+
+	if response.StatusCode != 200 && response.StatusCode != 204 {
+		errorMsg := fmt.Sprintf("request failed with error %s", response.Header.Get("X-Nv-Error-Msg"))
+		tflog.Error(ctx, errorMsg)
+		return errors.New(errorMsg)
+	}
+
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	ctx = tflog.SetField(ctx, "response_body", string(body))
+
+	if responseObject != nil {
+		err = json.Unmarshal(body, responseObject)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 type NvidiaCloudFunctionInfo struct {
 	ID              string        `json:"id"`
 	NcaID           string        `json:"ncaId"`
@@ -106,48 +151,15 @@ func (c *NVCFClient) createHelmBasedNvidiaCloudFunction(ctx context.Context, fun
 	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
 
 	var requestURL string
-
 	if functionId != "" {
 		requestURL = fmt.Sprintf("%s/nvcf/functions/%s/versions", c.NvcfEndpoint(ctx), functionId)
 	} else {
 		requestURL = fmt.Sprintf("%s/nvcf/functions", c.NvcfEndpoint(ctx))
 	}
 
-	payloadBuf := new(bytes.Buffer)
-	json.NewEncoder(payloadBuf).Encode(req)
-	tflog.Debug(ctx, payloadBuf.String())
-	request, _ := http.NewRequest(
-		http.MethodPost,
-		requestURL,
-		payloadBuf,
-	)
-
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &createNvidiaCloudFunctionResponse, err
-	}
-
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse)
 	tflog.Debug(ctx, "Create Helm-Based NVCF Function.")
-
-	if response.StatusCode != 200 {
-		return &createNvidiaCloudFunctionResponse, errors.New("failed to create function")
-	}
-
-	err = json.Unmarshal(body, &createNvidiaCloudFunctionResponse)
-	if err != nil {
-		return &createNvidiaCloudFunctionResponse, err
-	}
-	return &createNvidiaCloudFunctionResponse, nil
+	return &createNvidiaCloudFunctionResponse, err
 }
 
 type createContainerBasedNvidiaCloudFunctionRequest struct {
@@ -163,46 +175,15 @@ func (c *NVCFClient) createContainerBasedNvidiaCloudFunction(ctx context.Context
 	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
 
 	var requestURL string
-
 	if functionId != "" {
 		requestURL = fmt.Sprintf("%s/nvcf/functions/%s/versions", c.NvcfEndpoint(ctx), functionId)
 	} else {
 		requestURL = fmt.Sprintf("%s/nvcf/functions", c.NvcfEndpoint(ctx))
 	}
 
-	payloadBuf := new(bytes.Buffer)
-	json.NewEncoder(payloadBuf).Encode(req)
-	request, _ := http.NewRequest(
-		http.MethodPost,
-		requestURL,
-		payloadBuf,
-	)
-
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &createNvidiaCloudFunctionResponse, err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse)
 	tflog.Debug(ctx, "Create Container-Based NVCF Function.")
-
-	if response.StatusCode != 200 {
-		return &createNvidiaCloudFunctionResponse, errors.New("failed to create function")
-	}
-
-	err = json.Unmarshal(body, &createNvidiaCloudFunctionResponse)
-	if err != nil {
-		panic(err)
-	}
-	return &createNvidiaCloudFunctionResponse, nil
+	return &createNvidiaCloudFunctionResponse, err
 }
 
 type ListNvidiaCloudFunctionVersionsResponse struct {
@@ -218,70 +199,17 @@ func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, req Li
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + req.FunctionId + "/versions"
 
-	request, _ := http.NewRequest(
-		http.MethodGet,
-		requestURL,
-		nil,
-	)
-
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &listNvidiaCloudFunctionVersionsResponse, err
-	}
-
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
-	ctx = tflog.SetField(ctx, "function_id", req.FunctionId)
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &listNvidiaCloudFunctionVersionsResponse)
 	tflog.Debug(ctx, "List NVCF Function versions")
-
-	if response.StatusCode != 200 {
-		return &listNvidiaCloudFunctionVersionsResponse, errors.New("failed to read function versions")
-	}
-
-	err = json.Unmarshal(body, &listNvidiaCloudFunctionVersionsResponse)
-	if err != nil {
-		return &listNvidiaCloudFunctionVersionsResponse, err
-	}
-	return &listNvidiaCloudFunctionVersionsResponse, nil
+	return &listNvidiaCloudFunctionVersionsResponse, err
 }
 
 func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, functionId string, functionVersionID string) (err error) {
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionId + "/versions/" + functionVersionID
-	request, _ := http.NewRequest(
-		http.MethodDelete,
-		requestURL,
-		nil,
-	)
 
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, nil)
 	tflog.Debug(ctx, "Delete Function Deployment")
-
-	if response.StatusCode != 204 {
-		return fmt.Errorf("failed to delete function version %s", response.Header.Get("X-Nv-Error-Msg"))
-	}
-
-	return nil
+	return err
 }
 
 type NvidiaCloudFunctionDeploymentSpecification struct {
@@ -314,40 +242,11 @@ type CreateNvidiaCloudFunctionDeploymentResponse struct {
 func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, functionId string, functionVersionID string, req CreateNvidiaCloudFunctionDeploymentRequest) (resp *CreateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var createNvidiaCloudFunctionDeploymentResponse CreateNvidiaCloudFunctionDeploymentResponse
 
-	reqData, _ := json.Marshal(req)
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionId + "/versions/" + functionVersionID
-	request, _ := http.NewRequest(
-		http.MethodPost,
-		requestURL,
-		bytes.NewReader(reqData),
-	)
 
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &createNvidiaCloudFunctionDeploymentResponse, err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
-	ctx = tflog.SetField(ctx, "request_body", string(reqData))
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionDeploymentResponse)
 	tflog.Debug(ctx, "Create Function Deployment")
-
-	if response.StatusCode != 200 {
-		return &createNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to create function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
-	}
-
-	err = json.Unmarshal(body, &createNvidiaCloudFunctionDeploymentResponse)
-	if err != nil {
-		panic(err)
-	}
-	return &createNvidiaCloudFunctionDeploymentResponse, nil
+	return &createNvidiaCloudFunctionDeploymentResponse, err
 }
 
 type UpdateNvidiaCloudFunctionDeploymentRequest struct {
@@ -361,40 +260,11 @@ type UpdateNvidiaCloudFunctionDeploymentResponse struct {
 func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, functionId string, functionVersionID string, req UpdateNvidiaCloudFunctionDeploymentRequest) (resp *UpdateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var updateNvidiaCloudFunctionDeploymentResponse UpdateNvidiaCloudFunctionDeploymentResponse
 
-	reqData, _ := json.Marshal(req)
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionId + "/versions/" + functionVersionID
-	request, _ := http.NewRequest(
-		http.MethodPut,
-		requestURL,
-		bytes.NewReader(reqData),
-	)
 
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &updateNvidiaCloudFunctionDeploymentResponse, err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
-	ctx = tflog.SetField(ctx, "request_body", string(reqData))
+	err = c.sendRequest(ctx, requestURL, http.MethodPut, req, &updateNvidiaCloudFunctionDeploymentResponse)
 	tflog.Debug(ctx, "Update Function Deployment")
-
-	if response.StatusCode != 200 {
-		return &updateNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to update function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
-	}
-
-	err = json.Unmarshal(body, &updateNvidiaCloudFunctionDeploymentResponse)
-	if err != nil {
-		panic(err)
-	}
-	return &updateNvidiaCloudFunctionDeploymentResponse, nil
+	return &updateNvidiaCloudFunctionDeploymentResponse, err
 }
 
 func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionId string, functionVersionId string) error {
@@ -424,41 +294,10 @@ func (c *NVCFClient) ReadNvidiaCloudFunctionDeployment(ctx context.Context, func
 	var readNvidiaCloudFunctionDeploymentResponse ReadNvidiaCloudFunctionDeploymentResponse
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionId + "/versions/" + functionVersionID
-	request, _ := http.NewRequest(
-		http.MethodGet,
-		requestURL,
-		nil,
-	)
 
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &readNvidiaCloudFunctionDeploymentResponse, err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &readNvidiaCloudFunctionDeploymentResponse)
 	tflog.Debug(ctx, "Read Function Deployment")
-
-	if response.StatusCode == 404 {
-		return &readNvidiaCloudFunctionDeploymentResponse, errors.New("failed to find function deployment")
-	}
-
-	if response.StatusCode != 200 {
-		return &readNvidiaCloudFunctionDeploymentResponse, errors.New("failed to read function deployment")
-	}
-
-	err = json.Unmarshal(body, &readNvidiaCloudFunctionDeploymentResponse)
-	if err != nil {
-		panic(err)
-	}
-	return &readNvidiaCloudFunctionDeploymentResponse, nil
+	return &readNvidiaCloudFunctionDeploymentResponse, err
 }
 
 type DeleteNvidiaCloudFunctionResponse struct {
@@ -469,35 +308,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	var deleteNvidiaCloudFunctionDeploymentResponse DeleteNvidiaCloudFunctionResponse
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionId + "/versions/" + functionVersionID
-	request, _ := http.NewRequest(
-		http.MethodDelete,
-		requestURL,
-		nil,
-	)
-
-	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return &deleteNvidiaCloudFunctionDeploymentResponse, err
-	}
-	defer response.Body.Close()
-
-	body, _ := io.ReadAll(response.Body)
-
-	ctx = tflog.SetField(ctx, "response_status", response.Status)
-	ctx = tflog.SetField(ctx, "response_header", response.Header)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &deleteNvidiaCloudFunctionDeploymentResponse)
 	tflog.Debug(ctx, "Delete Function Deployment")
-
-	if response.StatusCode != 200 {
-		return &deleteNvidiaCloudFunctionDeploymentResponse, fmt.Errorf("failed to delete function deployment %s", response.Header.Get("X-Nv-Error-Msg"))
-	}
-
-	err = json.Unmarshal(body, &deleteNvidiaCloudFunctionDeploymentResponse)
-	if err != nil {
-		panic(err)
-	}
-	return &deleteNvidiaCloudFunctionDeploymentResponse, nil
+	return &deleteNvidiaCloudFunctionDeploymentResponse, err
 }
