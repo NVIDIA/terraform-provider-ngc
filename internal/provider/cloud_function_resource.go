@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -14,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/utils"
 )
+
+const DEFAULT_TIMEOUT_SEC = 60 * 60
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &NvidiaCloudFunctionResource{}
@@ -39,20 +43,21 @@ type NvidiaCloudFunctionDeploymentSpecificationModel struct {
 }
 
 type NvidiaCloudFunctionResourceModel struct {
-	Id                       types.String `tfsdk:"id"`
-	FunctionId               types.String `tfsdk:"function_id"`
-	VersionId                types.String `tfsdk:"version_id"`
-	NcaId                    types.String `tfsdk:"nca_id"`
-	FunctionName             types.String `tfsdk:"function_name"`
-	HelmChartUri             types.String `tfsdk:"helm_chart_uri"`
-	HelmChartServiceName     types.String `tfsdk:"helm_chart_service_name"`
-	HelmChartServicePort     types.Int64  `tfsdk:"helm_chart_service_port"`
-	ContainerImageUri        types.String `tfsdk:"container_image_uri"`
-	ContainerPort            types.Int64  `tfsdk:"container_port"`
-	EndpointPath             types.String `tfsdk:"endpoint_path"`
-	HealthEndpointPath       types.String `tfsdk:"health_endpoint_path"`
-	APIBodyFormat            types.String `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List   `tfsdk:"deployment_specifications"`
+	Id                       types.String   `tfsdk:"id"`
+	FunctionId               types.String   `tfsdk:"function_id"`
+	VersionId                types.String   `tfsdk:"version_id"`
+	NcaId                    types.String   `tfsdk:"nca_id"`
+	FunctionName             types.String   `tfsdk:"function_name"`
+	HelmChartUri             types.String   `tfsdk:"helm_chart_uri"`
+	HelmChartServiceName     types.String   `tfsdk:"helm_chart_service_name"`
+	HelmChartServicePort     types.Int64    `tfsdk:"helm_chart_service_port"`
+	ContainerImageUri        types.String   `tfsdk:"container_image_uri"`
+	ContainerPort            types.Int64    `tfsdk:"container_port"`
+	EndpointPath             types.String   `tfsdk:"endpoint_path"`
+	HealthEndpointPath       types.String   `tfsdk:"health_endpoint_path"`
+	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
+	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
+	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
@@ -285,6 +290,10 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Optional:            true,
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Create: true,
+				Update: true,
+			}),
 		},
 	}
 }
@@ -318,6 +327,20 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	createTimeout, diags := data.Timeouts.Create(ctx, DEFAULT_TIMEOUT_SEC*time.Second)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
 
 	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx, data.FunctionId.ValueString(),
 		utils.CreateNvidiaCloudFunctionRequest{
@@ -429,6 +452,16 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	updateTimeout, diags := plan.Timeouts.Update(ctx, DEFAULT_TIMEOUT_SEC*time.Second)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
+	defer cancel()
 
 	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx,
 		plan.Id.ValueString(),

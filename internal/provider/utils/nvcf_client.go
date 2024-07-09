@@ -280,7 +280,12 @@ func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionId 
 		if readNvidiaCloudFunctionDeploymentResponse.Deployment.FunctionStatus == "ACTIVE" {
 			return nil
 		} else if readNvidiaCloudFunctionDeploymentResponse.Deployment.FunctionStatus == "DEPLOYING" {
-			time.Sleep(10 * time.Second)
+			select {
+			case <-ctx.Done():
+				return errors.New("cancelled")
+			case <-time.After(10 * time.Second):
+				continue
+			}
 		} else {
 			return fmt.Errorf("unexpected status %s", readNvidiaCloudFunctionDeploymentResponse.Deployment.FunctionStatus)
 		}
