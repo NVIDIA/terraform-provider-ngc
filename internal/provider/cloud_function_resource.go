@@ -248,9 +248,6 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			"version_id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Function Version ID",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"function_name": schema.StringAttribute{
 				MarkdownDescription: "Function name",
@@ -388,10 +385,10 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NvidiaCloudFunctionResource) deleteFailedDeploymentVersion(ctx context.Context, keepFailedResource bool, functionId string, versionID string, diag *diag.Diagnostics) {
+func (r *NvidiaCloudFunctionResource) deleteFailedDeploymentVersion(ctx context.Context, keepFailedResource bool, functionID string, versionID string, diag *diag.Diagnostics) {
 	tflog.Error(ctx, "failed to deploy the new version.")
 	if !keepFailedResource {
-		err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, functionId, versionID)
+		err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, functionID, versionID)
 		if err != nil {
 			diag.AddError(
 				"Failed to delete failed Cloud Function deployment",
@@ -399,7 +396,7 @@ func (r *NvidiaCloudFunctionResource) deleteFailedDeploymentVersion(ctx context.
 			)
 			return
 		}
-		tflog.Error(ctx, "deleted the failed function deployment")
+		tflog.Info(ctx, "deleted the failed function deployment")
 	}
 }
 
@@ -505,7 +502,6 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(plan.DeploymentSpecifications.Elements()) == 0 {
-		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {

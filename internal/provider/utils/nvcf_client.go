@@ -33,7 +33,7 @@ func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
 	return c.HttpClient
 }
 
-func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any) error {
+func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any, expectedStatusCode map[int]bool) error {
 	var request *http.Request
 
 	if requestBody != nil {
@@ -57,10 +57,8 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	ctx = tflog.SetField(ctx, "response_status", response.Status)
 	ctx = tflog.SetField(ctx, "response_header", response.Header)
 
-	if response.StatusCode != 200 && response.StatusCode != 204 {
-		errorMsg := fmt.Sprintf("request failed with error %s", response.Header.Get("X-Nv-Error-Msg"))
-		tflog.Error(ctx, errorMsg)
-		return errors.New(errorMsg)
+	if _, ok := expectedStatusCode[response.StatusCode]; !ok {
+		return errors.New(response.Header.Get("X-Nv-Error-Msg"))
 	}
 
 	defer response.Body.Close()
@@ -158,7 +156,7 @@ func (c *NVCFClient) createHelmBasedNvidiaCloudFunction(ctx context.Context, fun
 		requestURL = fmt.Sprintf("%s/nvcf/functions", c.NvcfEndpoint(ctx))
 	}
 
-	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Create Helm-Based NVCF Function.")
 	return &createNvidiaCloudFunctionResponse, err
 }
@@ -182,7 +180,7 @@ func (c *NVCFClient) createContainerBasedNvidiaCloudFunction(ctx context.Context
 		requestURL = fmt.Sprintf("%s/nvcf/functions", c.NvcfEndpoint(ctx))
 	}
 
-	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Create Container-Based NVCF Function.")
 	return &createNvidiaCloudFunctionResponse, err
 }
@@ -200,7 +198,7 @@ func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functi
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions"
 
-	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &listNvidiaCloudFunctionVersionsResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &listNvidiaCloudFunctionVersionsResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "List NVCF Function versions")
 	return &listNvidiaCloudFunctionVersionsResponse, err
 }
@@ -208,7 +206,7 @@ func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functi
 func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, functionID string, functionVersionID string) (err error) {
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions/" + functionVersionID
 
-	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, nil)
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, nil, map[int]bool{204: true})
 	tflog.Debug(ctx, "Delete Function Deployment")
 	return err
 }
@@ -245,7 +243,7 @@ func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
 
-	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionDeploymentResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Create Function Deployment")
 	return &createNvidiaCloudFunctionDeploymentResponse, err
 }
@@ -263,7 +261,7 @@ func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
 
-	err = c.sendRequest(ctx, requestURL, http.MethodPut, req, &updateNvidiaCloudFunctionDeploymentResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodPut, req, &updateNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Update Function Deployment")
 	return &updateNvidiaCloudFunctionDeploymentResponse, err
 }
@@ -301,7 +299,7 @@ func (c *NVCFClient) ReadNvidiaCloudFunctionDeployment(ctx context.Context, func
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
 
-	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &readNvidiaCloudFunctionDeploymentResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &readNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true, 404: true})
 	tflog.Debug(ctx, "Read Function Deployment")
 	return &readNvidiaCloudFunctionDeploymentResponse, err
 }
@@ -314,7 +312,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	var deleteNvidiaCloudFunctionDeploymentResponse DeleteNvidiaCloudFunctionDeploymentResponse
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
-	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &deleteNvidiaCloudFunctionDeploymentResponse)
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &deleteNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Delete Function Deployment")
 	return &deleteNvidiaCloudFunctionDeploymentResponse, err
 }
