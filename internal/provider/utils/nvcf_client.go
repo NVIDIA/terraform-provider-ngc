@@ -18,7 +18,7 @@ type NVCFClient struct {
 	NgcApiKey   string
 	NgcOrg      string
 	NgcTeam     string
-	httpClient  *http.Client
+	HttpClient  *http.Client
 }
 
 func (c *NVCFClient) NvcfEndpoint(context.Context) string {
@@ -30,7 +30,7 @@ func (c *NVCFClient) NvcfEndpoint(context.Context) string {
 }
 
 func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
-	return c.httpClient
+	return c.HttpClient
 }
 
 func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any) error {
@@ -41,13 +41,13 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		json.NewEncoder(payloadBuf).Encode(requestBody)
 		request, _ = http.NewRequest(method, requestURL, payloadBuf)
 	} else {
-		request, _ = http.NewRequest(method, requestURL, nil)
+		request, _ = http.NewRequest(method, requestURL, http.NoBody)
 	}
 
 	request.Header.Set("Authorization", "Bearer "+c.NgcApiKey)
 	request.Header.Set("Content-Type", "application/json")
 
-	response, err := c.httpClient.Do(request)
+	response, err := c.HttpClient.Do(request)
 
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("failed to send request to %s with method %s", requestURL, method))
@@ -71,6 +71,7 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		err = json.Unmarshal(body, responseObject)
 
 		if err != nil {
+			tflog.Error(ctx, "failed to parse response body")
 			return err
 		}
 	}
@@ -194,10 +195,10 @@ type ListNvidiaCloudFunctionVersionsRequest struct {
 	FunctionId string `json:"name"`
 }
 
-func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, req ListNvidiaCloudFunctionVersionsRequest) (resp *ListNvidiaCloudFunctionVersionsResponse, err error) {
+func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functionId string) (resp *ListNvidiaCloudFunctionVersionsResponse, err error) {
 	var listNvidiaCloudFunctionVersionsResponse ListNvidiaCloudFunctionVersionsResponse
 
-	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + req.FunctionId + "/versions"
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionId + "/versions"
 
 	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &listNvidiaCloudFunctionVersionsResponse)
 	tflog.Debug(ctx, "List NVCF Function versions")
@@ -300,12 +301,12 @@ func (c *NVCFClient) ReadNvidiaCloudFunctionDeployment(ctx context.Context, func
 	return &readNvidiaCloudFunctionDeploymentResponse, err
 }
 
-type DeleteNvidiaCloudFunctionResponse struct {
+type DeleteNvidiaCloudFunctionDeploymentResponse struct {
 	Function NvidiaCloudFunctionInfo `json:"function"`
 }
 
-func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, functionId string, functionVersionID string) (resp *DeleteNvidiaCloudFunctionResponse, err error) {
-	var deleteNvidiaCloudFunctionDeploymentResponse DeleteNvidiaCloudFunctionResponse
+func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, functionId string, functionVersionID string) (resp *DeleteNvidiaCloudFunctionDeploymentResponse, err error) {
+	var deleteNvidiaCloudFunctionDeploymentResponse DeleteNvidiaCloudFunctionDeploymentResponse
 
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionId + "/versions/" + functionVersionID
 	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &deleteNvidiaCloudFunctionDeploymentResponse)

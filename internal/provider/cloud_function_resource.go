@@ -372,9 +372,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	var listNvidiaCloudFunctionVersionsResponse, err = r.client.ListNvidiaCloudFunctionVersions(ctx, utils.ListNvidiaCloudFunctionVersionsRequest{
-		FunctionId: data.Id.ValueString(),
-	})
+	var listNvidiaCloudFunctionVersionsResponse, err = r.client.ListNvidiaCloudFunctionVersions(ctx, data.Id.ValueString())
 
 	if err != nil {
 		resp.Diagnostics.AddError(
