@@ -4,9 +4,9 @@ package provider
 
 import (
 	"context"
-	"net/http"
 	"os"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -119,7 +119,7 @@ func (p *NgcProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		return
 	}
 
-	httpClient := http.DefaultClient
+	httpClient := cleanhttp.DefaultPooledClient()
 
 	client := &utils.NGCClient{
 		NgcEndpoint: ngcEndpoint,
