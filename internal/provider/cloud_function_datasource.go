@@ -26,8 +26,8 @@ type NvidiaCloudFunctionDataSource struct {
 
 // NvidiaCloudFunctionDataSourceModel describes the data source data model.
 type NvidiaCloudFunctionDataSourceModel struct {
-	FunctionId               types.String `tfsdk:"function_id"`
-	VersionId                types.String `tfsdk:"version_id"`
+	FunctionID               types.String `tfsdk:"function_id"`
+	VersionID                types.String `tfsdk:"version_id"`
 	NcaId                    types.String `tfsdk:"nca_id"`
 	FunctionName             types.String `tfsdk:"function_name"`
 	HelmChartUri             types.String `tfsdk:"helm_chart_uri"`
@@ -47,9 +47,9 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 	functionInfo *utils.NvidiaCloudFunctionInfo,
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
 
-	data.VersionId = types.StringValue(functionInfo.VersionID)
+	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
-	data.FunctionId = types.StringValue(functionInfo.ID)
+	data.FunctionID = types.StringValue(functionInfo.ID)
 	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
 	data.NcaId = types.StringValue(functionInfo.NcaID)
 	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
@@ -185,7 +185,7 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 		return
 	}
 
-	var listNvidiaCloudFunctionVersionsResponse, err = d.client.ListNvidiaCloudFunctionVersions(ctx, data.FunctionId.ValueString())
+	var listNvidiaCloudFunctionVersionsResponse, err = d.client.ListNvidiaCloudFunctionVersions(ctx, data.FunctionID.ValueString())
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -198,7 +198,7 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 	var functionVersion utils.NvidiaCloudFunctionInfo
 
 	for _, f := range listNvidiaCloudFunctionVersionsResponse.Functions {
-		if f.ID == data.FunctionId.ValueString() && f.VersionID == data.VersionId.ValueString() {
+		if f.ID == data.FunctionID.ValueString() && f.VersionID == data.VersionID.ValueString() {
 			functionVersion = f
 			versionNotFound = false
 			break
@@ -206,14 +206,14 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 	}
 
 	if versionNotFound {
-		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionId.ValueString()))
+		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionID.ValueString()))
 	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	readNvidiaCloudFunctionDeploymentResponse, err := d.client.ReadNvidiaCloudFunctionDeployment(ctx, data.FunctionId.ValueString(), data.VersionId.ValueString())
+	readNvidiaCloudFunctionDeploymentResponse, err := d.client.ReadNvidiaCloudFunctionDeployment(ctx, data.FunctionID.ValueString(), data.VersionID.ValueString())
 
 	if err != nil {
 		// FIXME: extract error messsage to constants.

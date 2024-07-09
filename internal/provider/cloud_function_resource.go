@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/utils"
 )
 
@@ -44,8 +45,8 @@ type NvidiaCloudFunctionDeploymentSpecificationModel struct {
 
 type NvidiaCloudFunctionResourceModel struct {
 	Id                       types.String   `tfsdk:"id"`
-	FunctionId               types.String   `tfsdk:"function_id"`
-	VersionId                types.String   `tfsdk:"version_id"`
+	FunctionID               types.String   `tfsdk:"function_id"`
+	VersionID                types.String   `tfsdk:"version_id"`
 	NcaId                    types.String   `tfsdk:"nca_id"`
 	FunctionName             types.String   `tfsdk:"function_name"`
 	HelmChartUri             types.String   `tfsdk:"helm_chart_uri"`
@@ -57,20 +58,21 @@ type NvidiaCloudFunctionResourceModel struct {
 	HealthEndpointPath       types.String   `tfsdk:"health_endpoint_path"`
 	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
 	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
+	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
 	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 	ctx context.Context, diag *diag.Diagnostics,
-	userProvideFunctionId types.String,
+	userProvideFunctionID types.String,
 	data *NvidiaCloudFunctionResourceModel,
 	functionInfo *utils.NvidiaCloudFunctionInfo,
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
 
 	data.Id = types.StringValue(functionInfo.ID)
-	data.VersionId = types.StringValue(functionInfo.VersionID)
+	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
-	data.FunctionId = userProvideFunctionId
+	data.FunctionID = userProvideFunctionID
 	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
 	data.NcaId = types.StringValue(functionInfo.NcaID)
 	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
@@ -253,9 +255,6 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			"function_name": schema.StringAttribute{
 				MarkdownDescription: "Function name",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"helm_chart_uri": schema.StringAttribute{
 				MarkdownDescription: "Helm chart registry uri",
@@ -290,6 +289,10 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Optional:            true,
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
+			"keep_failed_resource": schema.BoolAttribute{
+				MarkdownDescription: "Don't delete failed resource. Default is \"false\"",
+				Optional:            true,
+			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
 				Update: true,
@@ -342,7 +345,7 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
 
-	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx, data.FunctionId.ValueString(),
+	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx, data.FunctionID.ValueString(),
 		utils.CreateNvidiaCloudFunctionRequest{
 			FunctionName:         data.FunctionName.ValueString(),
 			HelmChartUri:         data.HelmChartUri.ValueString(),
@@ -369,20 +372,35 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(data.DeploymentSpecifications.Elements()) == 0 {
-		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionId.ValueString())
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionId, &data, &function, nil)
+		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString())
+		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
-		r.client.WaitingDeploymentCompleted(ctx, function.ID, function.VersionID)
 
 		if hasError {
+			r.deleteFailedDeploymentVersion(ctx, data.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionId, &data, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, &functionDeployment)
 	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *NvidiaCloudFunctionResource) deleteFailedDeploymentVersion(ctx context.Context, keepFailedResource bool, functionId string, versionID string, diag *diag.Diagnostics) {
+	tflog.Error(ctx, "failed to deploy the new version.")
+	if !keepFailedResource {
+		err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, functionId, versionID)
+		if err != nil {
+			diag.AddError(
+				"Failed to delete failed Cloud Function deployment",
+				err.Error(),
+			)
+			return
+		}
+		tflog.Error(ctx, "deleted the failed function deployment")
+	}
 }
 
 func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -408,7 +426,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 	var functionVersion utils.NvidiaCloudFunctionInfo
 
 	for _, f := range listNvidiaCloudFunctionVersionsResponse.Functions {
-		if f.ID == data.Id.ValueString() && f.VersionID == data.VersionId.ValueString() {
+		if f.ID == data.Id.ValueString() && f.VersionID == data.VersionID.ValueString() {
 			functionVersion = f
 			versionNotFound = false
 			break
@@ -416,14 +434,14 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	if versionNotFound {
-		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionId.ValueString()))
+		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionID.ValueString()))
 	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	readNvidiaCloudFunctionDeploymentResponse, err := r.client.ReadNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionId.ValueString())
+	readNvidiaCloudFunctionDeploymentResponse, err := r.client.ReadNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString())
 
 	if err != nil {
 		// FIXME: extract error messsage to constants.
@@ -435,7 +453,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		}
 	}
 
-	r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionId, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
+	r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -487,32 +505,33 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(plan.DeploymentSpecifications.Elements()) == 0 {
-		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, plan.Id.ValueString(), plan.VersionId.ValueString())
-		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionId.ValueString())
+		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, state.Id.ValueString(), state.VersionID.ValueString())
+		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionId.ValueString()),
+				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionID.ValueString()),
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionId, &plan, &function, nil)
+		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, plan, &resp.Diagnostics, *r.client, function)
-		r.client.WaitingDeploymentCompleted(ctx, function.ID, function.VersionID)
 
 		if hasError {
+			r.deleteFailedDeploymentVersion(ctx, plan.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionId.ValueString())
+
+		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionId.ValueString()),
+				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionID.ValueString()),
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionId, &plan, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, &functionDeployment)
 	}
 
 	// Save updated data into Terraform state
@@ -525,10 +544,10 @@ func (r *NvidiaCloudFunctionResource) Delete(ctx context.Context, req resource.D
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, data.Id.ValueString(), data.VersionId.ValueString())
+	err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, data.Id.ValueString(), data.VersionID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Failed to delete Cloud Function version %s", data.VersionId.ValueString()),
+			fmt.Sprintf("Failed to delete Cloud Function version %s", data.VersionID.ValueString()),
 			err.Error(),
 		)
 	}

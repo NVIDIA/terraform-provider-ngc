@@ -21,8 +21,8 @@ var nvcfRequestHeaders = map[string]string{
 	"Authorization": "Bearer MOCK_API_KEY",
 	"Content-Type":  "application/json",
 }
-var mockFunctionId = "033c9664-f5b0-4bd2-8918-5aab085fc8db"
-var mockVersionId = "f0cc4c95-108c-471a-b52c-a2bd5c0024c2"
+var mockFunctionID = "033c9664-f5b0-4bd2-8918-5aab085fc8db"
+var mockVersionID = "f0cc4c95-108c-471a-b52c-a2bd5c0024c2"
 var mockHelmBasedFunctionInfo = fmt.Sprintf(
 	`{
 		"id": "%s",
@@ -40,8 +40,8 @@ var mockHelmBasedFunctionInfo = fmt.Sprintf(
 		"createdAt": "2024-03-13T09:04:20.377756757Z",
 		"activeInstances": []
 	}`,
-	mockFunctionId,
-	mockVersionId,
+	mockFunctionID,
+	mockVersionID,
 )
 var mockContainerBasedFunctionInfo = fmt.Sprintf(`
 	{
@@ -59,8 +59,8 @@ var mockContainerBasedFunctionInfo = fmt.Sprintf(`
 		"activeInstances": []
 	}
 	`,
-	mockFunctionId,
-	mockVersionId,
+	mockFunctionID,
+	mockVersionID,
 )
 
 var mockDeploymentSpecification = fmt.Sprintf(`
@@ -78,7 +78,7 @@ var mockFunctionDeploymentInfo = fmt.Sprintf(
 	{
 		"deployment" : {
 			"functionId": "%s",
-			"functionVersionId": "%s",
+			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
 			"functionStatus": "DEPLOYING",
 			"requestQueueUrl": "https://sqs.us-west-2.amazonaws.com/052277528122/gdn-strap-dynamic_SfDTycz-Y81Iq7rCt_6cf20357-b6c9-459e-ae36-34b22319b7e4.fifo",
@@ -86,8 +86,8 @@ var mockFunctionDeploymentInfo = fmt.Sprintf(
 		}
 	}
 	`,
-	mockFunctionId,
-	mockVersionId,
+	mockFunctionID,
+	mockVersionID,
 	mockDeploymentSpecification,
 )
 
@@ -96,7 +96,7 @@ var mockFunctionDeploymentFailedInfo = fmt.Sprintf(
 	{
 		"deployment" : {
 			"functionId": "%s",
-			"functionVersionId": "%s",
+			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
 			"functionStatus": "FAILED",
 			"requestQueueUrl": "https://sqs.us-west-2.amazonaws.com/052277528122/gdn-strap-dynamic_SfDTycz-Y81Iq7rCt_6cf20357-b6c9-459e-ae36-34b22319b7e4.fifo",
@@ -104,8 +104,8 @@ var mockFunctionDeploymentFailedInfo = fmt.Sprintf(
 		}
 	}
 	`,
-	mockFunctionId,
-	mockVersionId,
+	mockFunctionID,
+	mockVersionID,
 	mockDeploymentSpecification,
 )
 
@@ -114,7 +114,7 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 	{
 		"deployment" : {
 			"functionId": "%s",
-			"functionVersionId": "%s",
+			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
 			"functionStatus": "ACTIVE",
 			"requestQueueUrl": "https://sqs.us-west-2.amazonaws.com/052277528122/gdn-strap-dynamic_SfDTycz-Y81Iq7rCt_6cf20357-b6c9-459e-ae36-34b22319b7e4.fifo",
@@ -122,8 +122,8 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 		}
 	}
 	`,
-	mockFunctionId,
-	mockVersionId,
+	mockFunctionID,
+	mockVersionID,
 	mockDeploymentSpecification,
 )
 
@@ -349,7 +349,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createContainerBasedNvidiaCloudFunctionReq,
@@ -360,7 +360,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 				req: CreateNvidiaCloudFunctionRequest{
 					ContainerImageUri:  "nvcr.io/lzzr0aktntgj/coreapi-service:latest-dev",
 					ContainerPort:      50051,
@@ -383,7 +383,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createContainerBasedNvidiaCloudFunctionReq,
@@ -394,7 +394,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 				req: CreateNvidiaCloudFunctionRequest{
 					ContainerImageUri:  "nvcr.io/lzzr0aktntgj/coreapi-service:latest-dev",
 					ContainerPort:      50051,
@@ -417,7 +417,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createHelmBasedNvidiaCloudFunctionReq,
@@ -428,7 +428,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 				req: CreateNvidiaCloudFunctionRequest{
 					HelmChartUri:         "mock",
 					HelmChartServicePort: 50051,
@@ -452,7 +452,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createHelmBasedNvidiaCloudFunctionReq,
@@ -463,7 +463,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 				req: CreateNvidiaCloudFunctionRequest{
 					HelmChartUri:         "mock",
 					HelmChartServicePort: 50051,
@@ -540,7 +540,7 @@ func TestNVCFClient_ListNvidiaCloudFunctionVersions(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -551,7 +551,7 @@ func TestNVCFClient_ListNvidiaCloudFunctionVersions(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 			},
 			wantResp: &listNvidiaCloudFunctionVersionsMockResp,
 			wantErr:  false,
@@ -566,7 +566,7 @@ func TestNVCFClient_ListNvidiaCloudFunctionVersions(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -577,7 +577,7 @@ func TestNVCFClient_ListNvidiaCloudFunctionVersions(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
-				functionID: mockFunctionId,
+				functionID: mockFunctionID,
 			},
 			wantResp: &ListNvidiaCloudFunctionVersionsResponse{},
 			wantErr:  true,
@@ -635,7 +635,7 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionVersion(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodDelete,
 						nvcfRequestHeaders,
 						nil,
@@ -646,8 +646,8 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionVersion(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantErr: false,
 		},
@@ -661,7 +661,7 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionVersion(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodDelete,
 						nvcfRequestHeaders,
 						nil,
@@ -672,8 +672,8 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionVersion(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantErr: true,
 		},
@@ -737,7 +737,7 @@ func TestNVCFClient_CreateNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createNvidiaCloudFunctionDeploymentReq,
@@ -748,8 +748,8 @@ func TestNVCFClient_CreateNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 				req:               createNvidiaCloudFunctionDeploymentReq,
 			},
 			wantResp: &createNvidiaCloudFunctionDeploymentResp,
@@ -765,7 +765,7 @@ func TestNVCFClient_CreateNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createNvidiaCloudFunctionDeploymentReq,
@@ -776,8 +776,8 @@ func TestNVCFClient_CreateNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 				req:               createNvidiaCloudFunctionDeploymentReq,
 			},
 			wantResp: &CreateNvidiaCloudFunctionDeploymentResponse{},
@@ -848,7 +848,7 @@ func TestNVCFClient_UpdateNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodPut,
 						nvcfRequestHeaders,
 						updateNvidiaCloudFunctionDeploymentReq,
@@ -859,8 +859,8 @@ func TestNVCFClient_UpdateNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 				req:               updateNvidiaCloudFunctionDeploymentReq,
 			},
 			wantResp: &updateNvidiaCloudFunctionDeploymentResp,
@@ -876,7 +876,7 @@ func TestNVCFClient_UpdateNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodPut,
 						nvcfRequestHeaders,
 						updateNvidiaCloudFunctionDeploymentReq,
@@ -887,8 +887,8 @@ func TestNVCFClient_UpdateNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 				req:               updateNvidiaCloudFunctionDeploymentReq,
 			},
 			wantResp: &UpdateNvidiaCloudFunctionDeploymentResponse{},
@@ -950,7 +950,7 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -961,8 +961,8 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantErr: false,
 		},
@@ -976,7 +976,7 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -987,8 +987,8 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantErr: true,
 		},
@@ -1002,7 +1002,7 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -1013,8 +1013,8 @@ func TestNVCFClient_WaitingDeploymentCompleted(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantErr: true,
 		},
@@ -1070,7 +1070,7 @@ func TestNVCFClient_ReadNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -1081,8 +1081,8 @@ func TestNVCFClient_ReadNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantResp: &updateNvidiaCloudFunctionDeploymentResp,
 			wantErr:  false,
@@ -1097,7 +1097,7 @@ func TestNVCFClient_ReadNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodGet,
 						nvcfRequestHeaders,
 						nil,
@@ -1108,8 +1108,8 @@ func TestNVCFClient_ReadNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantResp: &ReadNvidiaCloudFunctionDeploymentResponse{},
 			wantErr:  true,
@@ -1172,7 +1172,7 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodDelete,
 						nvcfRequestHeaders,
 						nil,
@@ -1183,8 +1183,8 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantResp: &deleteNvidiaCloudFunctionDeploymentMockResp,
 			wantErr:  false,
@@ -1199,7 +1199,7 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 				HttpClient: &http.Client{
 					Transport: GenerateHttpClientMockRoundTripper(
 						t,
-						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionId, mockVersionId),
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
 						http.MethodDelete,
 						nvcfRequestHeaders,
 						nil,
@@ -1210,8 +1210,8 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 			},
 			args: args{
 				ctx:               context.Background(),
-				functionID:        mockFunctionId,
-				functionVersionID: mockVersionId,
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
 			},
 			wantResp: &DeleteNvidiaCloudFunctionDeploymentResponse{},
 			wantErr:  true,
