@@ -1,18 +1,12 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider NGC (Terraform Plugin Framework)
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+_This repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+This repository is a NGC Terraform Provider which building from the *template* for a [Terraform](https://www.terraform.io) provider, containing:
 
-- A resource and a data source (`internal/provider/`),
+- Resources and datasources (`internal/provider/`),
 - Examples (`examples/`) and generated documentation (`docs/`),
 - Miscellaneous meta files.
-
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
-
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
 
 ## Requirements
 
@@ -26,7 +20,7 @@ Once you've written your provider, you'll want to [publish it on the Terraform R
 1. Build the provider using the Go `install` command:
 
 ```shell
-go install
+go install .
 ```
 
 ## Adding Dependencies
@@ -62,3 +56,151 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```shell
 make testacc
 ```
+
+## Testing the Provider Locally
+
+1. Update the `~/terraformrc`
+
+    ```terraform
+    provider_installation {
+        dev_overrides {
+            "nvidia.com/dev/ngc" = "/home/huaweic/go/bin" # The path of go bin.
+        }
+        # For all other providers, install them directly from their origin provider
+        # registries as normal. If you omit this, Terraform will _only_ use
+        # the dev_overrides block, and so no other providers will be available.
+        direct {}
+    }
+    ```
+
+2. Change debug level `export TF_LOG=DEBUG`
+3. Setup NGC key `export NGC_API_KEY=nvapi-REDACTED`
+4. Test with terraform HCL. Here is an example. Please replace `backend` and `instance_type` by yourselves.
+
+    ```terraform
+        terraform {
+            required_providers {
+                ngc = {
+                source = "nvidia.com/dev/ngc"
+                }
+            }
+        }
+
+        provider "ngc" {
+            ngc_org  = "shhh2i6mga69" # Omniverse Cloud Prod
+            ngc_team = "devinfra"
+        }
+
+        resource "ngc_cloud_function" "helm_based_cloud_function_example" {
+            function_name           = "terraform-cloud-function-resource-example-helm"
+            helm_chart_uri          = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
+            helm_chart_service_name = "entrypoint"
+            helm_chart_service_port = 8000
+            endpoint_path           = "/echo"
+            health_endpoint_path    = "/health"
+            api_body_format         = "CUSTOM"
+            deployment_specifications = [
+                {
+                configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
+                backend                 = "dgxc-forge-az33-prd1"
+                instance_type           = "DGX-CLOUD.GPU.L40_1x"
+                gpu_type                = "L40"
+                max_instances           = 1
+                min_instances           = 1
+                max_request_concurrency = 1
+                }
+            ]
+        }
+
+        resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
+            function_name           = ngc_cloud_function.helm_based_cloud_function_example.function_name
+            function_id             = ngc_cloud_function.helm_based_cloud_function_example.id
+            helm_chart_uri          = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
+            helm_chart_service_name = "entrypoint"
+            helm_chart_service_port = 8000
+            endpoint_path           = "/echo"
+            health_endpoint_path    = "/health"
+            api_body_format         = "CUSTOM"
+            deployment_specifications = [
+                {
+                configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
+                backend                 = "dgxc-forge-az33-prd1"
+                instance_type           = "DGX-CLOUD.GPU.L40_1x"
+                gpu_type                = "L40"
+                max_instances           = 1
+                min_instances           = 1
+                max_request_concurrency = 1
+                }
+            ]
+        }
+
+        resource "ngc_cloud_function" "container_based_cloud_function_example" {
+            function_name        = "terraform-cloud-function-resource-example-container"
+            container_image_uri  = "nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample:latest"
+            container_port       = 8000
+            endpoint_path        = "/echo"
+            health_endpoint_path = "/health"
+            api_body_format      = "CUSTOM"
+            deployment_specifications = [
+                {
+                backend                 = "dgxc-forge-az33-prd1"
+                instance_type           = "DGX-CLOUD.GPU.L40_1x"
+                gpu_type                = "L40"
+                max_instances           = 1
+                min_instances           = 1
+                max_request_concurrency = 1
+                }
+            ]
+        }
+
+        resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
+            function_name        = ngc_cloud_function.container_based_cloud_function_example.function_name
+            function_id          = ngc_cloud_function.container_based_cloud_function_example.id
+            container_image_uri  = "nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample:latest"
+            container_port       = 8000
+            endpoint_path        = "/echo"
+            health_endpoint_path = "/health"
+            api_body_format      = "CUSTOM"
+            deployment_specifications = [
+                {
+                backend                 = "dgxc-forge-az33-prd1"
+                instance_type           = "DGX-CLOUD.GPU.L40_1x"
+                gpu_type                = "L40"
+                max_instances           = 1
+                min_instances           = 1
+                max_request_concurrency = 1
+                }
+            ]
+        }
+
+        data "ngc_cloud_function" "terraform-cloud-function-datasource-example" {
+            function_id = "fe97aa46-c8ea-4237-ba56-1212036f4d0f"
+            version_id  = "868d2192-6819-4b53-89f5-3c7fb1df2a72"
+        }
+
+        output "function_details" {
+            value = data.ngc_cloud_function.terraform-cloud-function-datasource-example
+        }
+    ```
+
+## Executing Acceptence Test
+
+1. Setup environment variables
+
+```sh
+export NGC_ORG=shhh2i6mga69 # Your ORG
+export NGC_TEAM=devinfra    # (Optional) Your TEAM
+export NGC_API_KEY=nvapi-REDACTED # Your NGC Personal Key
+export NGC_ENDPOINT=https://api.ngc.nvidia.com # (Optional) The NGC Endpoint
+```
+
+2. Run the test
+
+```sh
+make testacc
+```
+
+## Backlog
+
+1. NVCF-1536: Implement NVCF Terraform Provider Unit Tests
+2. NVCF-1537: Implement NVCF Terraform Provider CI pipelines

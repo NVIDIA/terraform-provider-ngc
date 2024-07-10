@@ -1,5 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) NVIDIA, Inc.
 
 package main
 
@@ -7,7 +6,8 @@ import (
 	"context"
 	"flag"
 	"log"
-	"terraform-provider-nvidia-cloud-function/internal/provider"
+
+	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
@@ -20,7 +20,7 @@ import (
 
 // Run the docs generation tool, check its repository for more information on how it works and how docs
 // can be customized.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate -provider-name scaffolding
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate -provider-name ngc
 
 var (
 	// these will be set by the goreleaser configuration
@@ -41,7 +41,7 @@ func main() {
 		// provider address is used in these tutorials in conjunction with a
 		// specific Terraform CLI configuration for manual development testing
 		// of this provider.
-		Address:         "hashicorp.com/edu/hashicups",
+		Address:         "nvidia.com/dev/cloud-function",
 		Debug:           debug,
 		ProtocolVersion: 6,
 	}
