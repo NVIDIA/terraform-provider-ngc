@@ -96,6 +96,7 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 
 ### Required
 
+- `endpoint_path` (String) Service endpoint Path. Default is "/"
 - `function_name` (String) Function name
 
 ### Optional
@@ -104,12 +105,13 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 - `container_image_uri` (String) Container image uri
 - `container_port` (Number) Container port
 - `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
-- `endpoint_path` (String) Service endpoint Path. Default is "/"
 - `function_id` (String) Function ID
 - `health_endpoint_path` (String) Service health endpoint Path. Default is "/v2/health/ready"
 - `helm_chart_service_name` (String) Target service name
 - `helm_chart_service_port` (Number) Target service port
 - `helm_chart_uri` (String) Helm chart registry uri
+- `keep_failed_resource` (Boolean) Don't delete failed resource. Default is "false"
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
@@ -122,12 +124,22 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 
 Required:
 
-- `backend` (String) NVCF Backend, default is GFN.
 - `gpu_type` (String) GPU Type, GFN backend default is L40
+- `instance_type` (String) NVCF Backend Instance Type.
 - `max_instances` (Number) Max Instances Count
 - `max_request_concurrency` (Number) Max Concurrency Count
 - `min_instances` (Number) Min Instances Count
 
 Optional:
 
+- `backend` (String) NVCF Backend.
 - `configuration` (String) Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions
+
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+- `update` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
