@@ -33,6 +33,14 @@ func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
 	return c.HttpClient
 }
 
+type ErrorResponse struct {
+	Type     string `json:"type"`
+	Title    string `json:"title"`
+	Status   int    `json:"status"`
+	Detail   string `json:"detail"`
+	Instance string `json:"instance"`
+}
+
 func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any, expectedStatusCode map[int]bool) error {
 	var request *http.Request
 
@@ -54,16 +62,25 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		return err
 	}
 
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+
 	ctx = tflog.SetField(ctx, "response_status", response.Status)
 	ctx = tflog.SetField(ctx, "response_header", response.Header)
 
 	if _, ok := expectedStatusCode[response.StatusCode]; !ok {
-		return errors.New(response.Header.Get("X-Nv-Error-Msg"))
-	}
+		tflog.Error(ctx, "got unexpected response code")
 
-	defer response.Body.Close()
-	body, _ := io.ReadAll(response.Body)
-	ctx = tflog.SetField(ctx, "response_body", string(body))
+		var errResponseObject = &ErrorResponse{}
+		err = json.Unmarshal(body, errResponseObject)
+
+		if err != nil {
+			ctx = tflog.SetField(ctx, "response_body", string(body))
+			tflog.Error(ctx, "failed to parse error response body")
+			return err
+		}
+		return errors.New(errResponseObject.Detail)
+	}
 
 	if responseObject != nil {
 		err = json.Unmarshal(body, responseObject)

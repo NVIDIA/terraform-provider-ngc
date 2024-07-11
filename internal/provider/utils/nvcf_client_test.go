@@ -127,6 +127,20 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 	mockDeploymentSpecification,
 )
 
+var mockErrorDetail = "Validation failure"
+var mockErrorResponse = fmt.Sprintf(
+	`
+	{
+	"type": "about:blank",
+	"title": "Bad Request",
+	"status": 400,
+	"detail": "%s",
+	"instance": "/v2/nvcf/accounts/2Q-6YGjFk5wg59_WCMW9x0zJyrYOkTeRdKbQIpYyXFo/deployments/functions/985cc4d8-0d14-4a97-953e-ef51977d4945/versions/88f8c7d3-8d94-4c59-8d56-4bd02fbad6ba"
+	}
+	`,
+	mockErrorDetail,
+)
+
 type mockRoundTripper struct {
 	t        *testing.T
 	request  *http.Request
@@ -264,11 +278,12 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 		req        CreateNvidiaCloudFunctionRequest
 	}
 	tests := []struct {
-		name     string
-		fields   fields
-		args     args
-		wantResp *CreateNvidiaCloudFunctionResponse
-		wantErr  bool
+		name       string
+		fields     fields
+		args       args
+		wantResp   *CreateNvidiaCloudFunctionResponse
+		wantErr    bool
+		wantErrMsg string
 	}{
 		{
 			name: "CreateContainerBasedNvidiaCloudFunction",
@@ -301,8 +316,9 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 					FunctionName:       "mock-container-function",
 				},
 			},
-			wantResp: &createContainerBasedNvidiaCloudFunctionMockResp,
-			wantErr:  false,
+			wantResp:   &createContainerBasedNvidiaCloudFunctionMockResp,
+			wantErr:    false,
+			wantErrMsg: "",
 		},
 		{
 			name: "CreateHelmBasedNvidiaCloudFunction",
@@ -336,8 +352,9 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 					FunctionName:         "mock-helm-function",
 				},
 			},
-			wantResp: &createContainerBasedNvidiaCloudFunctionMockResp,
-			wantErr:  false,
+			wantResp:   &createContainerBasedNvidiaCloudFunctionMockResp,
+			wantErr:    false,
+			wantErrMsg: "",
 		},
 		{
 			name: "CreateContainerBasedNvidiaCloudFunctionVersion",
@@ -370,8 +387,9 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 					FunctionName:       "mock-container-function",
 				},
 			},
-			wantResp: &createContainerBasedNvidiaCloudFunctionMockResp,
-			wantErr:  false,
+			wantResp:   &createContainerBasedNvidiaCloudFunctionMockResp,
+			wantErr:    false,
+			wantErrMsg: "",
 		},
 		{
 			name: "CreateContainerBasedNvidiaCloudFunctionVersionFailed",
@@ -387,7 +405,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createContainerBasedNvidiaCloudFunctionReq,
-						createContainerBasedNvidiaCloudFunctionMockRespRaw,
+						mockErrorResponse,
 						500,
 					),
 				},
@@ -404,8 +422,9 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 					FunctionName:       "mock-container-function",
 				},
 			},
-			wantResp: &CreateNvidiaCloudFunctionResponse{},
-			wantErr:  true,
+			wantResp:   &CreateNvidiaCloudFunctionResponse{},
+			wantErr:    true,
+			wantErrMsg: mockErrorDetail,
 		},
 		{
 			name: "CreateHelmBasedNvidiaCloudFunctionVersion",
@@ -456,7 +475,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 						http.MethodPost,
 						nvcfRequestHeaders,
 						createHelmBasedNvidiaCloudFunctionReq,
-						createHelmBasedNvidiaCloudFunctionMockRespRaw,
+						mockErrorResponse,
 						500,
 					),
 				},
@@ -474,8 +493,9 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 					FunctionName:         "mock-helm-function",
 				},
 			},
-			wantResp: &CreateNvidiaCloudFunctionResponse{},
-			wantErr:  true,
+			wantResp:   &CreateNvidiaCloudFunctionResponse{},
+			wantErr:    true,
+			wantErrMsg: mockErrorDetail,
 		},
 	}
 	for _, tt := range tests {
@@ -488,8 +508,8 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 				HttpClient:  tt.fields.HttpClient,
 			}
 			gotResp, err := c.CreateNvidiaCloudFunction(tt.args.ctx, tt.args.functionID, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NVCFClient.CreateNvidiaCloudFunction() error = %v, wantErr %v", err, tt.wantErr)
+			if (err != nil) != tt.wantErr || ((err != nil) && err.Error() != tt.wantErrMsg) {
+				t.Errorf("NVCFClient.CreateNvidiaCloudFunction() error = %v, wantErr %v, wantErrMsg %v", err, tt.wantErr, tt.wantErrMsg)
 				return
 			}
 			if !reflect.DeepEqual(gotResp, tt.wantResp) {
