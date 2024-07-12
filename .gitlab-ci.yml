@@ -1,0 +1,39 @@
+include: []
+
+variables:
+  TEST_REPORT_FILE: report.xml
+
+default:
+  tags:
+  - dind
+
+image: golang:1.22 # Only for CI testing, not for production run time usage
+
+stages:
+  - test
+  - build
+
+unit-test:
+  stage: test
+  script:
+  - go install gotest.tools/gotestsum@latest
+  - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
+  artifacts:
+    when: always
+    reports:
+      junit: $TEST_REPORT_FILE
+
+acceptance-test:
+  stage: test
+  script:
+  - go install gotest.tools/gotestsum@latest
+  - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
+  artifacts:
+    when: always
+    reports:
+      junit: $TEST_REPORT_FILE
+
+build:
+  stage: build
+  script:
+  - make install
