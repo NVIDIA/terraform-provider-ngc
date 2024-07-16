@@ -1,3 +1,6 @@
+//go:build unittest
+// +build unittest
+
 package utils
 
 import (
@@ -496,6 +499,42 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 			wantResp:   &CreateNvidiaCloudFunctionResponse{},
 			wantErr:    true,
 			wantErrMsg: mockErrorDetail,
+		},
+		{
+			name: "CreateHelmBasedNvidiaCloudFunctionVersionUnauthorized",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockEndpoint, mockOrg, mockTeam, mockFunctionID),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						createHelmBasedNvidiaCloudFunctionReq,
+						"",
+						401,
+					),
+				},
+			},
+			args: args{
+				ctx:        context.Background(),
+				functionID: mockFunctionID,
+				req: CreateNvidiaCloudFunctionRequest{
+					HelmChartUri:         "mock",
+					HelmChartServicePort: 50051,
+					HelmChartServiceName: "entry",
+					EndpointPath:         "/",
+					HealthEndpointPath:   "/",
+					APIBodyFormat:        "CUSTOM",
+					FunctionName:         "mock-helm-function",
+				},
+			},
+			wantResp:   &CreateNvidiaCloudFunctionResponse{},
+			wantErr:    true,
+			wantErrMsg: "not authenticated",
 		},
 	}
 	for _, tt := range tests {

@@ -71,6 +71,12 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	if _, ok := expectedStatusCode[response.StatusCode]; !ok {
 		tflog.Error(ctx, "got unexpected response code")
 
+		// The unauthenticated response format is different with others
+		if response.StatusCode == 401 {
+			tflog.Error(ctx, "unauthenticated error")
+			return errors.New("not authenticated")
+		}
+
 		var errResponseObject = &ErrorResponse{}
 		err = json.Unmarshal(body, errResponseObject)
 
@@ -257,7 +263,6 @@ type CreateNvidiaCloudFunctionDeploymentResponse struct {
 
 func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string, req CreateNvidiaCloudFunctionDeploymentRequest) (resp *CreateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var createNvidiaCloudFunctionDeploymentResponse CreateNvidiaCloudFunctionDeploymentResponse
-
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
 
 	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true})
@@ -297,7 +302,7 @@ func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionID 
 		} else if readNvidiaCloudFunctionDeploymentResponse.Deployment.FunctionStatus == "DEPLOYING" {
 			select {
 			case <-ctx.Done():
-				return errors.New("cancelled")
+				return errors.New("timeout occurred")
 			case <-time.After(10 * time.Second):
 				continue
 			}
