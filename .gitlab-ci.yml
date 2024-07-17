@@ -5,7 +5,7 @@ variables:
 
 default:
   tags:
-  - dind
+  - generic
 
 image: golang:1.22 # Only for CI testing, not for production run time usage
 
@@ -37,3 +37,10 @@ build:
   stage: build
   script:
   - make install
+
+# FIXME: Waiting IT provide CI token.
+.internal-release:
+  stage: deploy
+  script:
+  - go install github.com/goreleaser/goreleaser/v2@latest
+  - goreleaser release --clean
