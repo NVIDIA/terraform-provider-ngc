@@ -128,17 +128,19 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 		deploymentSpecificationsOption := make([]utils.NvidiaCloudFunctionDeploymentSpecification, 0)
 		for _, v := range deploymentSpecifications {
 			var configuration interface{}
-			err := json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
+			if v.Configuration.ValueString() != "" {
+				err := json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
 
-			if err != nil {
-				diag.AddError(
-					"Failed to create Cloud Function Deployment",
-					err.Error(),
-				)
-			}
+				if err != nil {
+					diag.AddError(
+						"Failed to create Cloud Function Deployment",
+						err.Error(),
+					)
+				}
 
-			if diag.HasError() {
-				return utils.NvidiaCloudFunctionDeployment{}, true
+				if diag.HasError() {
+					return utils.NvidiaCloudFunctionDeployment{}, true
+				}
 			}
 
 			d := utils.NvidiaCloudFunctionDeploymentSpecification{
@@ -383,7 +385,7 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Failed to delete the old Cloud Function deployment",
-				"Got unexpected result when deleting Cloud Function deployment",
+				"Got unexpected result when deleting Cloud Function deploymentjson.Unmarshal",
 			)
 		}
 		if resp.Diagnostics.HasError() {

@@ -111,9 +111,11 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 	t.Helper()
 
 	var configuration interface{}
-	err := json.Unmarshal([]byte(configurationRaw), &configuration)
-	if err != nil {
-		t.Fatalf(fmt.Sprintf("Unable to parse configurationRaw: %s", err.Error()))
+	if configurationRaw != "" {
+		err := json.Unmarshal([]byte(configurationRaw), &configuration)
+		if err != nil {
+			t.Fatalf(fmt.Sprintf("Unable to parse configurationRaw: %s", err.Error()))
+		}
 	}
 
 	resp, err := TestNVCFClient.CreateNvidiaCloudFunctionDeployment(Ctx, functionID, versionID, utils.CreateNvidiaCloudFunctionDeploymentRequest{
