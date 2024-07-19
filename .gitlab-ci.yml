@@ -17,7 +17,7 @@ check:
   stage: test
   script:
   - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
-  - golangci-lint
+  - golangci-lint run
 
 unit-test:
   stage: test
@@ -42,4 +42,5 @@ acceptance-test:
 build:
   stage: build
   script:
-  - make install
+  - curl -sfL https://goreleaser.com/static/run | bash VERSION=v2.1.0 -s -- check
+  - goreleaser build --snapshot --clean
