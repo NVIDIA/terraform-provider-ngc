@@ -69,7 +69,6 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 	data *NvidiaCloudFunctionResourceModel,
 	functionInfo *utils.NvidiaCloudFunctionInfo,
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
-
 	data.Id = types.StringValue(functionInfo.ID)
 	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
@@ -93,7 +92,6 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		deploymentSpecifications := make([]NvidiaCloudFunctionDeploymentSpecificationModel, 0)
 
 		for _, v := range functionDeployment.DeploymentSpecifications {
-
 			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
 				InstanceType:          types.StringValue(v.InstanceType),
@@ -130,7 +128,18 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 		deploymentSpecificationsOption := make([]utils.NvidiaCloudFunctionDeploymentSpecification, 0)
 		for _, v := range deploymentSpecifications {
 			var configuration interface{}
-			json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
+			err := json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
+
+			if err != nil {
+				diag.AddError(
+					"Failed to create Cloud Function Deployment",
+					err.Error(),
+				)
+			}
+
+			if diag.HasError() {
+				return utils.NvidiaCloudFunctionDeployment{}, true
+			}
 
 			d := utils.NvidiaCloudFunctionDeploymentSpecification{
 				Backend:               v.Backend.ValueString(),
@@ -370,7 +379,16 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(data.DeploymentSpecifications.Elements()) == 0 {
-		r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString())
+		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Failed to delete the old Cloud Function deployment",
+				"Got unexpected result when deleting Cloud Function deployment",
+			)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
 		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)

@@ -46,7 +46,6 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 	data *NvidiaCloudFunctionDataSourceModel,
 	functionInfo *utils.NvidiaCloudFunctionInfo,
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
-
 	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
 	data.FunctionID = types.StringValue(functionInfo.ID)
@@ -69,7 +68,6 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		deploymentSpecifications := make([]NvidiaCloudFunctionDeploymentSpecificationModel, 0)
 
 		for _, v := range functionDeployment.DeploymentSpecifications {
-
 			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
 				InstanceType:          types.StringValue(v.InstanceType),

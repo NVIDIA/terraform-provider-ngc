@@ -1,8 +1,30 @@
 # Visit https://golangci-lint.run/ for usage documentation
 # and information on other useful linters
+run:
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 10m
+
+  # exit code when at least one issue was found, default is 1
+  issues-exit-code: 1
+
+  # include test files or not, default is true
+  tests: false
+
 issues:
   max-per-linter: 0
   max-same-issues: 0
+
+linters-settings:
+  lll:
+    # seems reasonable enough with high-res available
+    line-length: 250
+  gosec:
+    config:
+      G306: "0644"
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+
 
 linters:
   disable-all: true
@@ -14,14 +36,24 @@ linters:
     - godot
     - gofmt
     - gosimple
+    - gosec
+    - goconst
+    - gocyclo
+    - gocritic
+    - goimports
+    - govet
     - ineffassign
     - makezero
     - misspell
     - nilerr
+    - nakedret
     - predeclared
+    # - revive # Too noisy for now.
+    - lll
     - staticcheck
     - tenv
+    - typecheck
     - unconvert
     - unparam
     - unused
-    - vet
+    - whitespace
