@@ -1,4 +1,12 @@
-include: []
+include:
+- project: pstooling/gitlab-templates
+  ref: main
+  file:
+  - templates/pulse-in-pipeline/Scan.gitlab-ci.yml
+- project: security/devops-tools/gitlab-templates
+  ref: main
+  file:
+    - vault.gitlab-ci.yml
 
 workflow:
   rules:
@@ -16,19 +24,39 @@ workflow:
 
 variables:
   TEST_REPORT_FILE: report.xml
+  NSPECT_ID: NSPECT-K76E-VNQ5
+  VAULT_ADDR: https://prod.vault.nvidia.com
+  VAULT_NAMESPACE: backstage
+  VAULT_ROLE: sw-cloud-role
+  VAULT_MOUNT_PATH: auth/jwt/nvidia/gitlab-master
+  VAULT_SECRETS_DEST: ./secrets/secrets
 
 default:
   tags:
-  - dind
+  - generic
 
-image: golang:1.22 # Only for CI testing, not for production run time usage
+# Only for CI Build, not for production run time usage
+image: golang:1.22.5
 
 stages:
   - test
+  - scan
+  - integration-test
   - build
   - deploy
 
-check:
+.vault-secrets:
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: $VAULT_ADDR
+  extends:
+    - .nv-vault
+  before_script:
+    - !reference [.nv-vault, before_script]
+    - vault agent -config ./vault-agent/config-local.hcl once
+    - source "${VAULT_SECRETS_DEST}"
+
+golangci-lint:
   stage: test
   script:
   - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
@@ -44,9 +72,24 @@ unit-test:
     reports:
       junit: $TESㄈ_REPORT_FILE
 
-# FIXME: Disabled for testing
-acceptance-test:
-  stage: test
+# XXX: image is overwrote by gitlab job template.
+security:scan:
+  stage: scan
+  extends:
+  - .vault-secrets
+  - .scan-with-report-no-fail
+  variables:
+    PULSE_NSPECT_ID: $NSPECT_ID
+    PULSE_REPO_URL: "${CI_PROJECT_URL}.git"
+    PULSE_SCAN_PROJECT: "terraform-provider-ngc"
+    PULSE_SCAN_PROJECT_VERSION: "${CI_COMMIT_BRANCH}"
+    PULSE_SCAN_VULNERABILITY_REPORT: "nspect_scan_report.json"
+
+# XXX: We pass the NGC_API_KEY with gitlab CI variable in here,
+#   since the golang build image is distroless, which cannot install unzip for nvvault installation.
+# And we don't want to maintain another build image in here.
+integration-test:
+  stage: integration-test
   script:
   - go install gotest.tools/gotestsum@latest
   - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
@@ -66,12 +109,13 @@ build:
   - go install github.com/goreleaser/goreleaser/v2@latest
   - goreleaser build --snapshot --clean
 
+# XXX: We pass the deploy key (ARTIFACTORY_URM_SECRET, ARTIFACTORY_URM_USERNAME) with gitlab CI variable in here,
+#   since the golang build image is distroless, which cannot install unzip for nvvault installation.
+# And we don't want to maintain another build image in here.
 release:
   stage: deploy
   rules:
   - if: $CI_COMMIT_TAG !~ "/^$/"
-  variables:
-    ARTIFACTORY_PRODUCTION_USERNAME: svc-backstage-cicd-group
   script:
   - go install github.com/goreleaser/goreleaser/v2@latest
   - goreleaser release --clean
