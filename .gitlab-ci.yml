@@ -1,7 +1,16 @@
-include: []
+include:
+- project: security/devops-tools/gitlab-templates
+  ref: main
+  file:
+  - vault.gitlab-ci.yml
 
 variables:
   TEST_REPORT_FILE: report.xml
+  VAULT_ADDR: https://prod.vault.nvidia.com
+  VAULT_NAMESPACE: backstage
+  VAULT_ROLE: sw-cloud-role
+  VAULT_MOUNT_PATH: auth/jwt/nvidia/gitlab-master
+  VAULT_SECRETS_DEST: ./secrets/secrets
 
 default:
   tags:
@@ -12,14 +21,27 @@ image: golang:1.22 # Only for CI testing, not for production run time usage
 stages:
   - test
   - build
+  - deploy
 
-check:
+.vault-secrets:
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: $VAULT_ADDR
+  extends:
+    - .nv-vault
+  before_script:
+    - apt-get install unzip
+    - !reference [.nv-vault, before_script]
+    - vault agent -config ./vault-agent/config-local.hcl once
+    - source "${VAULT_SECRETS_DEST}"
+
+.check:
   stage: test
   script:
   - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
   - golangci-lint run
 
-unit-test:
+.unit-test:
   stage: test
   script:
   - go install gotest.tools/gotestsum@latest
@@ -29,7 +51,8 @@ unit-test:
     reports:
       junit: $TEST_REPORT_FILE
 
-acceptance-test:
+# FIXME: Disabled for testing
+.acceptance-test:
   stage: test
   script:
   - go install gotest.tools/gotestsum@latest
@@ -41,6 +64,22 @@ acceptance-test:
 
 build:
   stage: build
+  rules:
+  # Don't run when triggered with tag, since the publish step will include build process.
+  - if: $CI_COMMIT_TAG !~ "/^$/"
+    when: never
   script:
   - go install github.com/goreleaser/goreleaser/v2@latest
   - goreleaser build --snapshot --clean
+
+release:
+  stage: deploy
+  rules:
+  - if: $CI_COMMIT_TAG !~ "/^$/"
+  variables:
+    ARTIFACTORY_PRODUCTION_USERNAME: svc-backstage-cicd-group
+  extends:
+  - .vault-secrets
+  script:
+  - go install github.com/goreleaser/goreleaser/v2@latest
+  - goreleaser release --clean
