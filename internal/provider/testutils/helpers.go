@@ -19,7 +19,7 @@ var TestNGCClient *utils.NGCClient
 var TestNVCFClient *utils.NVCFClient
 var Ctx = context.Background()
 
-const RESOURCE_PREFIX = "terraform-provider-integ"
+const resourcePrefix = "terraform-provider-integ"
 
 var TestNcaID string
 
@@ -64,7 +64,7 @@ func init() {
 	// Setup Test Data
 
 	// Helm-Base Function
-	TestHelmFunctionName = fmt.Sprintf("%s-helm-function-01", RESOURCE_PREFIX)
+	TestHelmFunctionName = fmt.Sprintf("%s-helm-function-01", resourcePrefix)
 	TestHelmUri = os.Getenv("HELM_CHART_URI")
 	TestHelmServiceName = os.Getenv("HELM_CHART_SERVICE_NAME")
 	TestHelmServicePort, _ = strconv.Atoi(os.Getenv("HELM_CHART_SERVICE_PORT"))
@@ -74,7 +74,7 @@ func init() {
 	TestHelmAPIFormat = "CUSTOM"
 
 	// Container-Base Function
-	TestContainerFunctionName = fmt.Sprintf("%s-container-function-01", RESOURCE_PREFIX)
+	TestContainerFunctionName = fmt.Sprintf("%s-container-function-01", resourcePrefix)
 	TestContainerUri = os.Getenv("CONTAINER_URI")
 	TestContainerPort, _ = strconv.Atoi(os.Getenv("CONTAINER_PORT"))
 	TestContainerEndpoint = os.Getenv("CONTAINER_ENDPOINT_PATH")
@@ -111,7 +111,12 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 	t.Helper()
 
 	var configuration interface{}
-	json.Unmarshal([]byte(configurationRaw), &configuration)
+	if configurationRaw != "" {
+		err := json.Unmarshal([]byte(configurationRaw), &configuration)
+		if err != nil {
+			t.Fatalf(fmt.Sprintf("Unable to parse configurationRaw: %s", err.Error()))
+		}
+	}
 
 	resp, err := TestNVCFClient.CreateNvidiaCloudFunctionDeployment(Ctx, functionID, versionID, utils.CreateNvidiaCloudFunctionDeploymentRequest{
 		DeploymentSpecifications: []utils.NvidiaCloudFunctionDeploymentSpecification{
@@ -163,6 +168,6 @@ func DeleteFunction(t *testing.T, functionID string, versionID string) {
 	}
 }
 
-func EscapeJson(t *testing.T, rawJson string) string {
+func EscapeJSON(t *testing.T, rawJson string) string {
 	return strings.ReplaceAll(rawJson, "\"", "\\\"")
 }

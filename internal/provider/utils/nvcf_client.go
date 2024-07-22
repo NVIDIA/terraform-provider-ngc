@@ -46,7 +46,11 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 
 	if requestBody != nil {
 		payloadBuf := new(bytes.Buffer)
-		json.NewEncoder(payloadBuf).Encode(requestBody)
+		err := json.NewEncoder(payloadBuf).Encode(requestBody)
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("failed to parse request body %s", requestBody))
+			return err
+		}
 		request, _ = http.NewRequest(method, requestURL, payloadBuf)
 	} else {
 		request, _ = http.NewRequest(method, requestURL, http.NoBody)
@@ -289,7 +293,6 @@ func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 }
 
 func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionID string, functionVersionId string) error {
-
 	for {
 		readNvidiaCloudFunctionDeploymentResponse, err := c.ReadNvidiaCloudFunctionDeployment(ctx, functionID, functionVersionId)
 
