@@ -1,5 +1,19 @@
 include: []
 
+workflow:
+  rules:
+  # Overwrite to unblock other CI jobs
+  # ref: https://gitlab-master.nvidia.com/omniverse/farm/devops/ci/gitlab/git/-/blob/main/modules/v2/version/_common.yml
+  # run on each merge request
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  # run on tag creation
+  - if: $CI_COMMIT_TAG !~ "/^$/"
+  # Prevent branch pipeline, otherwise it would run CI twice, first on the new branch and
+  # second on the merge request. We only want to run the CI on the merge request.
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+    when: never
+
 variables:
   TEST_REPORT_FILE: report.xml
 
@@ -12,6 +26,7 @@ image: golang:1.22 # Only for CI testing, not for production run time usage
 stages:
   - test
   - build
+  - deploy
 
 check:
   stage: test
@@ -27,8 +42,9 @@ unit-test:
   artifacts:
     when: always
     reports:
-      junit: $TEST_REPORT_FILE
+      junit: $TESㄈ_REPORT_FILE
 
+# FIXME: Disabled for testing
 acceptance-test:
   stage: test
   script:
@@ -41,6 +57,21 @@ acceptance-test:
 
 build:
   stage: build
+  rules:
+  # Don't run when triggered with tag, since the publish step will include build process.
+  - if: $CI_COMMIT_TAG !~ "/^$/"
+    when: never
+  - when: always
   script:
   - go install github.com/goreleaser/goreleaser/v2@latest
   - goreleaser build --snapshot --clean
+
+release:
+  stage: deploy
+  rules:
+  - if: $CI_COMMIT_TAG !~ "/^$/"
+  variables:
+    ARTIFACTORY_PRODUCTION_USERNAME: svc-backstage-cicd-group
+  script:
+  - go install github.com/goreleaser/goreleaser/v2@latest
+  - goreleaser release --clean
