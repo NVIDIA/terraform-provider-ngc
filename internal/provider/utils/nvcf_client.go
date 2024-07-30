@@ -71,6 +71,8 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 
 	ctx = tflog.SetField(ctx, "response_status", response.Status)
 	ctx = tflog.SetField(ctx, "response_header", response.Header)
+	ctx = tflog.SetField(ctx, "response_body", string(body))
+	ctx = tflog.SetField(ctx, "request_body", requestBody)
 
 	if _, ok := expectedStatusCode[response.StatusCode]; !ok {
 		tflog.Error(ctx, "got unexpected response code")
@@ -104,36 +106,99 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	return err
 }
 
+type NvidiaCloudFunctionModel struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	URI     string `json:"uri"`
+}
+
+type NvidiaCloudFunctionContainerEnvironment struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// FIXME: `timeout` field format is mismatched with doc
+// https://nvidia.slack.com/archives/C04NQTZ9RDZ/p1722334239889549
+type NvidiaCloudFunctionHealthWorkaround struct {
+	Protocol           string  `json:"protocol,omitempty"`
+	URI                string  `json:"uri,omitempty"`
+	Port               int     `json:"port,omitempty"`
+	Timeout            float32 `json:"timeout,omitempty"`
+	ExpectedStatusCode int     `json:"expectedStatusCode,omitempty"`
+}
+
+type NvidiaCloudFunctionHealth struct {
+	Protocol           string `json:"protocol,omitempty"`
+	URI                string `json:"uri,omitempty"`
+	Port               int    `json:"port,omitempty"`
+	Timeout            string `json:"timeout,omitempty"`
+	ExpectedStatusCode int    `json:"expectedStatusCode,omitempty"`
+}
+
+type NvidiaCloudFunctionActiveInstance struct {
+	InstanceID        string    `json:"instanceId"`
+	FunctionID        string    `json:"functionId"`
+	FunctionVersionID string    `json:"functionVersionId"`
+	InstanceType      string    `json:"instanceType"`
+	InstanceStatus    string    `json:"instanceStatus"`
+	SisRequestID      string    `json:"sisRequestId"`
+	NcaID             string    `json:"ncaId"`
+	Gpu               string    `json:"gpu"`
+	Backend           string    `json:"backend"`
+	Location          string    `json:"location"`
+	InstanceCreatedAt time.Time `json:"instanceCreatedAt"`
+	InstanceUpdatedAt time.Time `json:"instanceUpdatedAt"`
+}
+
+type NvidiaCloudFunctionResource struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	URI     string `json:"uri"`
+}
+
 type NvidiaCloudFunctionInfo struct {
-	ID              string        `json:"id"`
-	NcaID           string        `json:"ncaId"`
-	VersionID       string        `json:"versionId"`
-	Name            string        `json:"name"`
-	Status          string        `json:"status"`
-	InferenceURL    string        `json:"inferenceUrl"`
-	InferencePort   int           `json:"inferencePort"`
-	ContainerImage  string        `json:"containerImage"`
-	APIBodyFormat   string        `json:"apiBodyFormat"`
-	HelmChart       string        `json:"helmChart"`
-	HelmServiceName string        `json:"helmChartServiceName"`
-	HealthURI       string        `json:"healthUri"`
-	CreatedAt       time.Time     `json:"createdAt"`
-	Description     string        `json:"description"`
-	Health          interface{}   `json:"health"`
-	ActiveInstances []interface{} `json:"activeInstances"`
+	ID                      string                                    `json:"id"`
+	NcaID                   string                                    `json:"ncaId"`
+	VersionID               string                                    `json:"versionId"`
+	Name                    string                                    `json:"name"`
+	Status                  string                                    `json:"status"`
+	InferenceURL            string                                    `json:"inferenceUrl"`
+	OwnedByDifferentAccount bool                                      `json:"ownedByDifferentAccount"`
+	InferencePort           int                                       `json:"inferencePort"`
+	ContainerImage          string                                    `json:"containerImage"`
+	ContainerEnvironment    []NvidiaCloudFunctionContainerEnvironment `json:"containerEnvironment"`
+	Models                  []NvidiaCloudFunctionModel                `json:"models"`
+	ContainerArgs           string                                    `json:"containerArgs"`
+	APIBodyFormat           string                                    `json:"apiBodyFormat"`
+	HelmChart               string                                    `json:"helmChart"`
+	HelmChartServiceName    string                                    `json:"helmChartServiceName"`
+	HealthURI               string                                    `json:"healthUri"`
+	CreatedAt               time.Time                                 `json:"createdAt"`
+	Description             string                                    `json:"description"`
+	Health                  *NvidiaCloudFunctionHealthWorkaround      `json:"health"`
+	ActiveInstances         []NvidiaCloudFunctionActiveInstance       `json:"activeInstances"`
+	Resources               []NvidiaCloudFunctionResource             `json:"resources"`
+	Tags                    []string                                  `json:"tags"`
+	FunctionType            string                                    `json:"functionType"`
 }
 
 type CreateNvidiaCloudFunctionRequest struct {
-	FunctionName                       string
-	HelmChartUri                       string
-	HelmChartValuesOverwriteJsonString string
-	HelmChartServiceName               string
-	HelmChartServicePort               int
-	ContainerImageUri                  string
-	ContainerPort                      int
-	EndpointPath                       string
-	HealthEndpointPath                 string
-	APIBodyFormat                      string
+	FunctionName         string                                    `json:"name"`
+	HelmChart            string                                    `json:"helmChart,omitempty"`
+	HelmChartServiceName string                                    `json:"helmChartServiceName,omitempty"`
+	InferenceUrl         string                                    `json:"inferenceUrl"`
+	HealthUri            string                                    `json:"healthUri,omitempty"`
+	InferencePort        int                                       `json:"inferencePort"`
+	ContainerImage       string                                    `json:"containerImage,omitempty"`
+	ContainerEnvironment []NvidiaCloudFunctionContainerEnvironment `json:"containerEnvironment,omitempty"`
+	Models               []NvidiaCloudFunctionModel                `json:"models,omitempty"`
+	ContainerArgs        string                                    `json:"containerArgs,omitempty"`
+	APIBodyFormat        string                                    `json:"apiBodyFormat"`
+	Description          string                                    `json:"description,omitempty"`
+	Health               *NvidiaCloudFunctionHealth                `json:"health,omitempty"`
+	Resources            []NvidiaCloudFunctionResource             `json:"resources,omitempty"`
+	Tags                 []string                                  `json:"tags,omitempty"`
+	FunctionType         string                                    `json:"functionType"`
 }
 
 type CreateNvidiaCloudFunctionResponse struct {
@@ -141,39 +206,6 @@ type CreateNvidiaCloudFunctionResponse struct {
 }
 
 func (c *NVCFClient) CreateNvidiaCloudFunction(ctx context.Context, functionID string, req CreateNvidiaCloudFunctionRequest) (resp *CreateNvidiaCloudFunctionResponse, err error) {
-	if req.ContainerImageUri != "" {
-		return c.createContainerBasedNvidiaCloudFunction(ctx, functionID, createContainerBasedNvidiaCloudFunctionRequest{
-			FunctionName:       req.FunctionName,
-			ContainerPort:      req.ContainerPort,
-			ContainerImage:     req.ContainerImageUri,
-			APIBodyFormat:      req.APIBodyFormat,
-			EndpointPath:       req.EndpointPath,
-			HealthEndpointPath: req.HealthEndpointPath,
-		})
-	} else {
-		return c.createHelmBasedNvidiaCloudFunction(ctx, functionID, createHelmBasedNvidiaCloudFunctionRequest{
-			FunctionName:         req.FunctionName,
-			HelmChartUri:         req.HelmChartUri,
-			APIBodyFormat:        req.APIBodyFormat,
-			HelmChartServicePort: req.HelmChartServicePort,
-			HelmChartServiceName: req.HelmChartServiceName,
-			EndpointPath:         req.EndpointPath,
-			HealthEndpointPath:   req.HealthEndpointPath,
-		})
-	}
-}
-
-type createHelmBasedNvidiaCloudFunctionRequest struct {
-	FunctionName         string `json:"name"`
-	HelmChartUri         string `json:"helmChart"`
-	HelmChartServiceName string `json:"helmChartServiceName"`
-	HelmChartServicePort int    `json:"inferencePort"`
-	EndpointPath         string `json:"inferenceUrl"`
-	HealthEndpointPath   string `json:"healthUri"`
-	APIBodyFormat        string `json:"apiBodyFormat"`
-}
-
-func (c *NVCFClient) createHelmBasedNvidiaCloudFunction(ctx context.Context, functionID string, req createHelmBasedNvidiaCloudFunctionRequest) (resp *CreateNvidiaCloudFunctionResponse, err error) {
 	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
 
 	var requestURL string
@@ -184,31 +216,7 @@ func (c *NVCFClient) createHelmBasedNvidiaCloudFunction(ctx context.Context, fun
 	}
 
 	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse, map[int]bool{200: true})
-	tflog.Debug(ctx, "Create Helm-Based NVCF Function.")
-	return &createNvidiaCloudFunctionResponse, err
-}
-
-type createContainerBasedNvidiaCloudFunctionRequest struct {
-	FunctionName       string `json:"name"`
-	ContainerPort      int    `json:"inferencePort"`
-	ContainerImage     string `json:"containerImage"`
-	EndpointPath       string `json:"inferenceUrl"`
-	APIBodyFormat      string `json:"apiBodyFormat"`
-	HealthEndpointPath string `json:"healthUri"`
-}
-
-func (c *NVCFClient) createContainerBasedNvidiaCloudFunction(ctx context.Context, functionID string, req createContainerBasedNvidiaCloudFunctionRequest) (resp *CreateNvidiaCloudFunctionResponse, err error) {
-	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
-
-	var requestURL string
-	if functionID != "" {
-		requestURL = fmt.Sprintf("%s/nvcf/functions/%s/versions", c.NvcfEndpoint(ctx), functionID)
-	} else {
-		requestURL = fmt.Sprintf("%s/nvcf/functions", c.NvcfEndpoint(ctx))
-	}
-
-	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionResponse, map[int]bool{200: true})
-	tflog.Debug(ctx, "Create Container-Based NVCF Function.")
+	tflog.Debug(ctx, "Create NVCF Function.")
 	return &createNvidiaCloudFunctionResponse, err
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -26,19 +27,25 @@ type NvidiaCloudFunctionDataSource struct {
 
 // NvidiaCloudFunctionDataSourceModel describes the data source data model.
 type NvidiaCloudFunctionDataSourceModel struct {
-	FunctionID               types.String `tfsdk:"function_id"`
-	VersionID                types.String `tfsdk:"version_id"`
-	NcaId                    types.String `tfsdk:"nca_id"`
-	FunctionName             types.String `tfsdk:"function_name"`
-	HelmChartUri             types.String `tfsdk:"helm_chart_uri"`
-	HelmChartServiceName     types.String `tfsdk:"helm_chart_service_name"`
-	HelmChartServicePort     types.Int64  `tfsdk:"helm_chart_service_port"`
-	ContainerImageUri        types.String `tfsdk:"container_image_uri"`
-	ContainerPort            types.Int64  `tfsdk:"container_port"`
-	EndpointPath             types.String `tfsdk:"endpoint_path"`
-	HealthEndpointPath       types.String `tfsdk:"health_endpoint_path"`
-	APIBodyFormat            types.String `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List   `tfsdk:"deployment_specifications"`
+	FunctionID               types.String                            `tfsdk:"function_id"`
+	VersionID                types.String                            `tfsdk:"version_id"`
+	NcaId                    types.String                            `tfsdk:"nca_id"`
+	FunctionName             types.String                            `tfsdk:"function_name"`
+	HelmChart                types.String                            `tfsdk:"helm_chart"`
+	HelmChartServiceName     types.String                            `tfsdk:"helm_chart_service_name"`
+	InferencePort            types.Int64                             `tfsdk:"inference_port"`
+	ContainerImage           types.String                            `tfsdk:"container_image"`
+	ContainerArgs            types.String                            `tfsdk:"container_args"`
+	ContainerEnvironment     types.List                              `tfsdk:"container_environment"`
+	InferenceUrl             types.String                            `tfsdk:"inference_url"`
+	HealthUri                types.String                            `tfsdk:"health_uri"`
+	Health                   *NvidiaCloudFunctionResourceHealthModel `tfsdk:"health"`
+	APIBodyFormat            types.String                            `tfsdk:"api_body_format"`
+	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
+	Tags                     types.Set                               `tfsdk:"tags"`
+	Description              types.String                            `tfsdk:"description"`
+	Resources                types.List                              `tfsdk:"resources"`
+	FunctionType             types.String                            `tfsdk:"function_type"`
 }
 
 func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel(
@@ -49,26 +56,57 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
 	data.FunctionID = types.StringValue(functionInfo.ID)
-	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
-	data.NcaId = types.StringValue(functionInfo.NcaID)
-	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
-	data.EndpointPath = types.StringValue(functionInfo.InferenceURL)
-	data.HealthEndpointPath = types.StringValue(functionInfo.HealthURI)
+	data.InferencePort = types.Int64Value(int64(functionInfo.InferencePort))
+
+	if functionInfo.APIBodyFormat != "" {
+		data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
+	}
+
+	if functionInfo.InferenceURL != "" {
+		data.InferenceUrl = types.StringValue(functionInfo.InferenceURL)
+	}
+
+	if functionInfo.NcaID != "" {
+		data.NcaId = types.StringValue(functionInfo.NcaID)
+	}
+
+	if functionInfo.Name != "" {
+		data.FunctionName = types.StringValue(functionInfo.Name)
+	}
+
+	if functionInfo.HealthURI != "" {
+		data.HealthUri = types.StringValue(functionInfo.HealthURI)
+	}
+
+	if functionInfo.HelmChartServiceName != "" {
+		data.HelmChartServiceName = types.StringValue(functionInfo.HelmChartServiceName)
+	}
 
 	if functionInfo.HelmChart != "" {
-		data.HelmChartServicePort = types.Int64Value(int64(functionInfo.InferencePort))
-		data.HelmChartServiceName = types.StringValue(functionInfo.HelmServiceName)
-		data.HelmChartUri = types.StringValue(functionInfo.HelmChart)
-	} else {
-		data.ContainerPort = types.Int64Value(int64(functionInfo.InferencePort))
-		data.ContainerImageUri = types.StringValue(functionInfo.ContainerImage)
+		data.HelmChart = types.StringValue(functionInfo.HelmChart)
+	}
+
+	if functionInfo.ContainerImage != "" {
+		data.ContainerImage = types.StringValue(functionInfo.ContainerImage)
+	}
+
+	if functionInfo.ContainerArgs != "" {
+		data.ContainerArgs = types.StringValue(functionInfo.ContainerArgs)
+	}
+
+	if functionInfo.FunctionType != "" {
+		data.FunctionType = types.StringValue(functionInfo.FunctionType)
+	}
+
+	if functionInfo.Description != "" {
+		data.Description = types.StringValue(functionInfo.Description)
 	}
 
 	if functionDeployment != nil {
-		deploymentSpecifications := make([]NvidiaCloudFunctionDeploymentSpecificationModel, 0)
+		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 
 		for _, v := range functionDeployment.DeploymentSpecifications {
-			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
+			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
 				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
@@ -88,6 +126,49 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		diag.Append(deploymentSpecificationsSetTypeDiag...)
 		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
+
+	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
+	diag.Append(tagsSetFromDiag...)
+	data.Tags = tags
+
+	data.Health = &NvidiaCloudFunctionResourceHealthModel{
+		Protocol: types.StringValue(functionInfo.Health.Protocol),
+		Uri:      types.StringValue(functionInfo.Health.URI),
+		Port:     types.Int64Value(int64(functionInfo.Health.Port)),
+		// FIXME: `timeout` field format is mismatched with doc
+		Timeout:            types.StringValue("PT" + strconv.Itoa(int(functionInfo.Health.Timeout)) + "S"),
+		ExpectedStatusCode: types.Int64Value(int64(functionInfo.Health.ExpectedStatusCode)),
+	}
+
+	if functionInfo.ContainerEnvironment != nil {
+		containerEnvironments := make([]NvidiaCloudFunctionResourceContainerEnvironmentModel, 0)
+		for _, v := range functionInfo.ContainerEnvironment {
+			containerEnvironment := NvidiaCloudFunctionResourceContainerEnvironmentModel{
+				Key:   types.StringValue(v.Key),
+				Value: types.StringValue(v.Value),
+			}
+
+			containerEnvironments = append(containerEnvironments, containerEnvironment)
+		}
+		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.ListValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
+		diag.Append(containerEnvironmentsSetTypeDiag...)
+		data.ContainerEnvironment = containerEnvironmentsSetType
+	}
+
+	if functionInfo.Resources != nil {
+		resources := make([]NvidiaCloudFunctionResourceResourceModel, 0)
+		for _, v := range functionInfo.Resources {
+			resource := NvidiaCloudFunctionResourceResourceModel{
+				Name:    types.StringValue(v.Name),
+				Uri:     types.StringValue(v.URI),
+				Version: types.StringValue(v.Version),
+			}
+			resources = append(resources, resource)
+		}
+		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
+		diag.Append(resourcesSetTypeDiag...)
+		data.ContainerEnvironment = resourcesSetType
+	}
 }
 
 func (d *NvidiaCloudFunctionDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -97,55 +178,76 @@ func (d *NvidiaCloudFunctionDataSource) Metadata(ctx context.Context, req dataso
 func (d *NvidiaCloudFunctionDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example data source",
+		MarkdownDescription: "Nvidia Cloud Function Data Source",
 
 		Attributes: map[string]schema.Attribute{
 			"function_id": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Function ID",
 			},
-			"nca_id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "NCA ID",
-			},
 			"version_id": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Function Version ID",
 			},
+			"nca_id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "NCA ID",
+			},
 			"function_name": schema.StringAttribute{
 				MarkdownDescription: "Function name",
-				Computed:            true,
+				Optional:            true,
 			},
-			"helm_chart_uri": schema.StringAttribute{
+			"helm_chart": schema.StringAttribute{
 				MarkdownDescription: "Helm chart registry uri",
-				Computed:            true,
+				Optional:            true,
 			},
 			"helm_chart_service_name": schema.StringAttribute{
 				MarkdownDescription: "Target service name",
-				Computed:            true,
+				Optional:            true,
 			},
-			"helm_chart_service_port": schema.Int64Attribute{
-				MarkdownDescription: "Target service port",
-				Computed:            true,
+			"inference_port": schema.Int64Attribute{
+				MarkdownDescription: "Target port, will be service port or container port base on function-based",
+				Optional:            true,
 			},
-			"container_image_uri": schema.StringAttribute{
+			"container_image": schema.StringAttribute{
 				MarkdownDescription: "Container image uri",
-				Computed:            true,
+				Optional:            true,
 			},
-			"container_port": schema.Int64Attribute{
-				MarkdownDescription: "Container port",
-				Computed:            true,
+			"container_environment": containerEnvironmentsSchema(),
+			"container_args": schema.StringAttribute{
+				MarkdownDescription: "Args to be passed when launching the container",
+				Optional:            true,
 			},
-			"endpoint_path": schema.StringAttribute{
-				MarkdownDescription: "Service endpoint Path. Default is \"/\"",
-				Computed:            true,
+			"inference_url": schema.StringAttribute{
+				MarkdownDescription: "Service endpoint Path.",
+				Optional:            true,
 			},
-			"health_endpoint_path": schema.StringAttribute{
+			"health_uri": schema.StringAttribute{
 				MarkdownDescription: "Service health endpoint Path. Default is \"/v2/health/ready\"",
+				Optional:            true,
+				Computed:            true,
+				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
+			},
+			"health":    healthSchema(),
+			"resources": resourcesSchema(),
+			"tags": schema.SetAttribute{
+				MarkdownDescription: "Tags of the function.",
+				ElementType:         types.StringType,
+				Optional:            true,
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Description of the function",
+				Optional:            true,
+				Computed:            true,
+			},
+			"function_type": schema.StringAttribute{
+				MarkdownDescription: "Optional function type, used to indicate a STREAMING function. Defaults is \"DEFAULT\".",
+				Optional:            true,
 				Computed:            true,
 			},
 			"api_body_format": schema.StringAttribute{
 				MarkdownDescription: "API Body Format. Default is \"CUSTOM\"",
+				Optional:            true,
 				Computed:            true,
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
