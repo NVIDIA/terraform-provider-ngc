@@ -22,13 +22,14 @@ var Ctx = context.Background()
 const resourcePrefix = "terraform-provider-integ"
 
 var TestNcaID string
+var TestFunctionType string
 
 var TestHelmFunctionName string
 var TestHelmUri string
 var TestHelmServiceName string
 var TestHelmServicePort int
-var TestHelmEndpointPath string
-var TestHelmHealthEndpointPath string
+var TestHelmInferenceUrl string
+var TestHelmHealthUri string
 var TestHelmValueOverWrite string
 var TestHelmAPIFormat string
 
@@ -38,10 +39,13 @@ var TestContainerPort int
 var TestContainerEndpoint string
 var TestContainerHealthEndpoint string
 var TestContainerAPIFormat string
+var TestContainerEnvironmentVariables []utils.NvidiaCloudFunctionContainerEnvironment
 
 var TestBackend string
 var TestInstanceType string
 var TestGpuType string
+
+var TestTags []string
 
 func init() {
 	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
@@ -68,8 +72,8 @@ func init() {
 	TestHelmUri = os.Getenv("HELM_CHART_URI")
 	TestHelmServiceName = os.Getenv("HELM_CHART_SERVICE_NAME")
 	TestHelmServicePort, _ = strconv.Atoi(os.Getenv("HELM_CHART_SERVICE_PORT"))
-	TestHelmEndpointPath = os.Getenv("HELM_CHART_ENDPOINT_PATH")
-	TestHelmHealthEndpointPath = os.Getenv("HELM_CHART_HEALTH_ENDPOINT_PATH")
+	TestHelmInferenceUrl = os.Getenv("HELM_CHART_ENDPOINT_PATH")
+	TestHelmHealthUri = os.Getenv("HELM_CHART_HEALTH_ENDPOINT_PATH")
 	TestHelmValueOverWrite = os.Getenv("HELM_CHART_VALUE_YAML_OVERWRITE")
 	TestHelmAPIFormat = "CUSTOM"
 
@@ -80,24 +84,33 @@ func init() {
 	TestContainerEndpoint = os.Getenv("CONTAINER_ENDPOINT_PATH")
 	TestContainerHealthEndpoint = os.Getenv("CONTAINER_HEALTH_ENDPOINT_PATH")
 	TestContainerAPIFormat = "CUSTOM"
-
+	TestContainerEnvironmentVariables = []utils.NvidiaCloudFunctionContainerEnvironment{
+		{
+			Key:   "mock_key",
+			Value: "mock_val",
+		},
+	}
 	TestBackend = os.Getenv("BACKEND")
 	TestInstanceType = os.Getenv("INSTANCE_TYPE")
 	TestGpuType = os.Getenv("GPU_TYPE")
+	TestFunctionType = "DEFAULT"
+
+	TestTags = []string{"mock1", "mock2"}
 }
 
 func CreateHelmFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionResponse {
 	t.Helper()
 
 	resp, err := TestNVCFClient.CreateNvidiaCloudFunction(Ctx, "", utils.CreateNvidiaCloudFunctionRequest{
-		FunctionName:                       TestHelmFunctionName,
-		HelmChartUri:                       TestHelmUri,
-		HelmChartServiceName:               TestHelmServiceName,
-		HelmChartServicePort:               TestHelmServicePort,
-		HelmChartValuesOverwriteJsonString: TestHelmValueOverWrite,
-		EndpointPath:                       TestHelmEndpointPath,
-		HealthEndpointPath:                 TestHelmHealthEndpointPath,
-		APIBodyFormat:                      TestHelmAPIFormat,
+		FunctionName:         TestHelmFunctionName,
+		HelmChart:            TestHelmUri,
+		HelmChartServiceName: TestHelmServiceName,
+		InferencePort:        TestHelmServicePort,
+		InferenceUrl:         TestHelmInferenceUrl,
+		HealthUri:            TestHelmHealthUri,
+		APIBodyFormat:        TestHelmAPIFormat,
+		Tags:                 TestTags,
+		FunctionType:         TestFunctionType,
 	})
 
 	if err != nil {
@@ -143,12 +156,15 @@ func CreateContainerFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionRespo
 	t.Helper()
 
 	resp, err := TestNVCFClient.CreateNvidiaCloudFunction(Ctx, "", utils.CreateNvidiaCloudFunctionRequest{
-		FunctionName:       TestContainerFunctionName,
-		ContainerImageUri:  TestContainerUri,
-		ContainerPort:      TestContainerPort,
-		EndpointPath:       TestContainerEndpoint,
-		HealthEndpointPath: TestContainerHealthEndpoint,
-		APIBodyFormat:      TestContainerAPIFormat,
+		FunctionName:         TestContainerFunctionName,
+		ContainerImage:       TestContainerUri,
+		InferencePort:        TestContainerPort,
+		InferenceUrl:         TestContainerEndpoint,
+		HealthUri:            TestContainerHealthEndpoint,
+		APIBodyFormat:        TestContainerAPIFormat,
+		Tags:                 TestTags,
+		ContainerEnvironment: TestContainerEnvironmentVariables,
+		FunctionType:         TestFunctionType,
 	})
 
 	if err != nil {

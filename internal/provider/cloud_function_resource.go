@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -34,7 +36,26 @@ type NvidiaCloudFunctionResource struct {
 	client *utils.NVCFClient
 }
 
-type NvidiaCloudFunctionDeploymentSpecificationModel struct {
+type NvidiaCloudFunctionResourceContainerEnvironmentModel struct {
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
+}
+
+type NvidiaCloudFunctionResourceHealthModel struct {
+	Protocol           types.String `tfsdk:"protocol"`
+	Uri                types.String `tfsdk:"uri"`
+	Port               types.Int64  `tfsdk:"port"`
+	Timeout            types.String `tfsdk:"timeout"`
+	ExpectedStatusCode types.Int64  `tfsdk:"expected_status_code"`
+}
+
+type NvidiaCloudFunctionResourceResourceModel struct {
+	Name    types.String `tfsdk:"name"`
+	Uri     types.String `tfsdk:"uri"`
+	Version types.String `tfsdk:"version"`
+}
+
+type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
 	GpuType               types.String `tfsdk:"gpu_type"`
 	Backend               types.String `tfsdk:"backend"`
 	MaxInstances          types.Int64  `tfsdk:"max_instances"`
@@ -45,22 +66,28 @@ type NvidiaCloudFunctionDeploymentSpecificationModel struct {
 }
 
 type NvidiaCloudFunctionResourceModel struct {
-	Id                       types.String   `tfsdk:"id"`
-	FunctionID               types.String   `tfsdk:"function_id"`
-	VersionID                types.String   `tfsdk:"version_id"`
-	NcaId                    types.String   `tfsdk:"nca_id"`
-	FunctionName             types.String   `tfsdk:"function_name"`
-	HelmChartUri             types.String   `tfsdk:"helm_chart_uri"`
-	HelmChartServiceName     types.String   `tfsdk:"helm_chart_service_name"`
-	HelmChartServicePort     types.Int64    `tfsdk:"helm_chart_service_port"`
-	ContainerImageUri        types.String   `tfsdk:"container_image_uri"`
-	ContainerPort            types.Int64    `tfsdk:"container_port"`
-	EndpointPath             types.String   `tfsdk:"endpoint_path"`
-	HealthEndpointPath       types.String   `tfsdk:"health_endpoint_path"`
-	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
-	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
-	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
+	Id                       types.String                            `tfsdk:"id"`
+	FunctionID               types.String                            `tfsdk:"function_id"`
+	VersionID                types.String                            `tfsdk:"version_id"`
+	NcaId                    types.String                            `tfsdk:"nca_id"`
+	FunctionName             types.String                            `tfsdk:"function_name"`
+	InferencePort            types.Int64                             `tfsdk:"inference_port"`
+	HelmChart                types.String                            `tfsdk:"helm_chart"`
+	HelmChartServiceName     types.String                            `tfsdk:"helm_chart_service_name"`
+	ContainerImage           types.String                            `tfsdk:"container_image"`
+	ContainerArgs            types.String                            `tfsdk:"container_args"`
+	ContainerEnvironment     types.List                              `tfsdk:"container_environment"`
+	InferenceUrl             types.String                            `tfsdk:"inference_url"`
+	HealthUri                types.String                            `tfsdk:"health_uri"` // Deprecated
+	Health                   *NvidiaCloudFunctionResourceHealthModel `tfsdk:"health"`
+	APIBodyFormat            types.String                            `tfsdk:"api_body_format"`
+	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
+	Tags                     types.Set                               `tfsdk:"tags"`
+	Description              types.String                            `tfsdk:"description"`
+	Resources                types.List                              `tfsdk:"resources"`
+	FunctionType             types.String                            `tfsdk:"function_type"`
+	KeepFailedResource       types.Bool                              `tfsdk:"keep_failed_resource"`
+	Timeouts                 timeouts.Value                          `tfsdk:"timeouts"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
@@ -71,28 +98,59 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
 	data.Id = types.StringValue(functionInfo.ID)
 	data.VersionID = types.StringValue(functionInfo.VersionID)
-	data.FunctionName = types.StringValue(functionInfo.Name)
 	data.FunctionID = userProvideFunctionID
-	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
-	data.NcaId = types.StringValue(functionInfo.NcaID)
-	data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
-	data.EndpointPath = types.StringValue(functionInfo.InferenceURL)
-	data.HealthEndpointPath = types.StringValue(functionInfo.HealthURI)
+
+	data.InferencePort = types.Int64Value(int64(functionInfo.InferencePort))
+
+	if functionInfo.APIBodyFormat != "" {
+		data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
+	}
+
+	if functionInfo.InferenceURL != "" {
+		data.InferenceUrl = types.StringValue(functionInfo.InferenceURL)
+	}
+
+	if functionInfo.NcaID != "" {
+		data.NcaId = types.StringValue(functionInfo.NcaID)
+	}
+
+	if functionInfo.Name != "" {
+		data.FunctionName = types.StringValue(functionInfo.Name)
+	}
+
+	if functionInfo.HealthURI != "" {
+		data.HealthUri = types.StringValue(functionInfo.HealthURI)
+	}
+
+	if functionInfo.HelmChartServiceName != "" {
+		data.HelmChartServiceName = types.StringValue(functionInfo.HelmChartServiceName)
+	}
 
 	if functionInfo.HelmChart != "" {
-		data.HelmChartServicePort = types.Int64Value(int64(functionInfo.InferencePort))
-		data.HelmChartServiceName = types.StringValue(functionInfo.HelmServiceName)
-		data.HelmChartUri = types.StringValue(functionInfo.HelmChart)
-	} else {
-		data.ContainerPort = types.Int64Value(int64(functionInfo.InferencePort))
-		data.ContainerImageUri = types.StringValue(functionInfo.ContainerImage)
+		data.HelmChart = types.StringValue(functionInfo.HelmChart)
+	}
+
+	if functionInfo.ContainerImage != "" {
+		data.ContainerImage = types.StringValue(functionInfo.ContainerImage)
+	}
+
+	if functionInfo.ContainerArgs != "" {
+		data.ContainerArgs = types.StringValue(functionInfo.ContainerArgs)
+	}
+
+	if functionInfo.FunctionType != "" {
+		data.FunctionType = types.StringValue(functionInfo.FunctionType)
+	}
+
+	if functionInfo.Description != "" {
+		data.Description = types.StringValue(functionInfo.Description)
 	}
 
 	if functionDeployment != nil {
-		deploymentSpecifications := make([]NvidiaCloudFunctionDeploymentSpecificationModel, 0)
+		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 
 		for _, v := range functionDeployment.DeploymentSpecifications {
-			deploymentSpecification := NvidiaCloudFunctionDeploymentSpecificationModel{
+			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
 				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
@@ -112,13 +170,56 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		diag.Append(deploymentSpecificationsSetTypeDiag...)
 		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
+
+	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
+	diag.Append(tagsSetFromDiag...)
+	data.Tags = tags
+
+	// FIXME: `timeout` field format is mismatched with doc
+	// data.Health = &NvidiaCloudFunctionResourceHealthModel{
+	// 	Protocol: types.StringValue(functionInfo.Health.Protocol),
+	// 	Uri:      types.StringValue(functionInfo.Health.URI),
+	// 	Port:     types.Int64Value(int64(functionInfo.Health.Port)),
+	// 	Timeout:            types.StringValue("PT" + strconv.Itoa(int(functionInfo.Health.Timeout)) + "S"),
+	// 	ExpectedStatusCode: types.Int64Value(int64(functionInfo.Health.ExpectedStatusCode)),
+	// }
+
+	if functionInfo.ContainerEnvironment != nil {
+		containerEnvironments := make([]NvidiaCloudFunctionResourceContainerEnvironmentModel, 0)
+		for _, v := range functionInfo.ContainerEnvironment {
+			containerEnvironment := NvidiaCloudFunctionResourceContainerEnvironmentModel{
+				Key:   types.StringValue(v.Key),
+				Value: types.StringValue(v.Value),
+			}
+
+			containerEnvironments = append(containerEnvironments, containerEnvironment)
+		}
+		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.ListValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
+		diag.Append(containerEnvironmentsSetTypeDiag...)
+		data.ContainerEnvironment = containerEnvironmentsSetType
+	}
+
+	if functionInfo.Resources != nil {
+		resources := make([]NvidiaCloudFunctionResourceResourceModel, 0)
+		for _, v := range functionInfo.Resources {
+			resource := NvidiaCloudFunctionResourceResourceModel{
+				Name:    types.StringValue(v.Name),
+				Uri:     types.StringValue(v.URI),
+				Version: types.StringValue(v.Version),
+			}
+			resources = append(resources, resource)
+		}
+		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
+		diag.Append(resourcesSetTypeDiag...)
+		data.ContainerEnvironment = resourcesSetType
+	}
 }
 
 func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, client utils.NVCFClient, function utils.NvidiaCloudFunctionInfo) (utils.NvidiaCloudFunctionDeployment, bool) {
 	var functionDeployment utils.NvidiaCloudFunctionDeployment
 
 	if !data.DeploymentSpecifications.IsNull() && len(data.DeploymentSpecifications.Elements()) > 0 {
-		deploymentSpecifications := make([]NvidiaCloudFunctionDeploymentSpecificationModel, 0, len(data.DeploymentSpecifications.Elements()))
+		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0, len(data.DeploymentSpecifications.Elements()))
 		diag.Append(data.DeploymentSpecifications.ElementsAs(ctx, &deploymentSpecifications, false)...)
 
 		if diag.HasError() {
@@ -229,6 +330,74 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 	}
 }
 
+func resourcesSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"name": schema.StringAttribute{
+					MarkdownDescription: "Artifact name",
+					Required:            true,
+				},
+				"version": schema.StringAttribute{
+					MarkdownDescription: "Artifact version",
+					Required:            true,
+				},
+				"uri": schema.StringAttribute{
+					MarkdownDescription: "Artifact URI",
+					Required:            true,
+				},
+			},
+		},
+		Optional: true,
+	}
+}
+
+func containerEnvironmentsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"key": schema.StringAttribute{
+					MarkdownDescription: "Container environment key",
+					Required:            true,
+				},
+				"value": schema.StringAttribute{
+					MarkdownDescription: "Container environment value",
+					Required:            true,
+				},
+			},
+		},
+		Optional: true,
+	}
+}
+
+func healthSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"protocol": schema.StringAttribute{
+				MarkdownDescription: "HTTP/gPRC protocol type for health endpoint",
+				Required:            true,
+			},
+			"uri": schema.StringAttribute{
+				MarkdownDescription: "Health endpoint for the container or the helmChart",
+				Required:            true,
+			},
+			"port": schema.Int64Attribute{
+				MarkdownDescription: "Port number where the health listener is running",
+				Required:            true,
+			},
+			"timeout": schema.StringAttribute{
+				MarkdownDescription: "ISO 8601 duration string in PnDTnHnMn.nS format",
+				Required:            true,
+			},
+			"expected_status_code": schema.Int64Attribute{
+				MarkdownDescription: "Expected return status code considered as successful",
+				Required:            true,
+			},
+		},
+	}
+}
+
 func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
@@ -265,7 +434,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "Function name",
 				Required:            true,
 			},
-			"helm_chart_uri": schema.StringAttribute{
+			"helm_chart": schema.StringAttribute{
 				MarkdownDescription: "Helm chart registry uri",
 				Optional:            true,
 			},
@@ -273,34 +442,59 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "Target service name",
 				Optional:            true,
 			},
-			"helm_chart_service_port": schema.Int64Attribute{
-				MarkdownDescription: "Target service port",
+			"inference_port": schema.Int64Attribute{
+				MarkdownDescription: "Target port, will be service port or container port base on function-based",
 				Optional:            true,
 			},
-			"container_image_uri": schema.StringAttribute{
+			"container_image": schema.StringAttribute{
 				MarkdownDescription: "Container image uri",
 				Optional:            true,
 			},
-			"container_port": schema.Int64Attribute{
-				MarkdownDescription: "Container port",
+			"container_environment": containerEnvironmentsSchema(),
+			"container_args": schema.StringAttribute{
+				MarkdownDescription: "Args to be passed when launching the container",
 				Optional:            true,
 			},
-			"endpoint_path": schema.StringAttribute{
-				MarkdownDescription: "Service endpoint Path. Default is \"/\"",
+			"inference_url": schema.StringAttribute{
+				MarkdownDescription: "Service endpoint Path.",
 				Required:            true,
 			},
-			"health_endpoint_path": schema.StringAttribute{
+			"health_uri": schema.StringAttribute{
 				MarkdownDescription: "Service health endpoint Path. Default is \"/v2/health/ready\"",
 				Optional:            true,
+				Computed:            true,
+				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
+			},
+			"health":    healthSchema(),
+			"resources": resourcesSchema(),
+			"tags": schema.SetAttribute{
+				MarkdownDescription: "Tags of the function.",
+				ElementType:         types.StringType,
+				Optional:            true,
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Description of the function",
+				Optional:            true,
+				Computed:            true,
+			},
+			"function_type": schema.StringAttribute{
+				MarkdownDescription: "Optional function type, used to indicate a STREAMING function. Defaults is \"DEFAULT\".",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("DEFAULT"),
 			},
 			"api_body_format": schema.StringAttribute{
 				MarkdownDescription: "API Body Format. Default is \"CUSTOM\"",
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("CUSTOM"),
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
 			"keep_failed_resource": schema.BoolAttribute{
 				MarkdownDescription: "Don't delete failed resource. Default is \"false\"",
 				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
@@ -334,6 +528,92 @@ func (r *NvidiaCloudFunctionResource) Metadata(ctx context.Context, req resource
 	resp.TypeName = req.ProviderTypeName + "_cloud_function"
 }
 
+func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics) utils.CreateNvidiaCloudFunctionRequest {
+	request := utils.CreateNvidiaCloudFunctionRequest{
+		FunctionName:  data.FunctionName.ValueString(),
+		InferencePort: int(data.InferencePort.ValueInt64()),
+		InferenceUrl:  data.InferenceUrl.ValueString(),
+		APIBodyFormat: data.APIBodyFormat.ValueString(),
+		FunctionType:  data.FunctionType.ValueString(),
+	}
+
+	if !data.HelmChart.IsNull() && !data.HelmChart.IsUnknown() {
+		request.HelmChart = data.HelmChart.ValueString()
+	}
+
+	if !data.HelmChartServiceName.IsNull() && !data.HelmChartServiceName.IsUnknown() {
+		request.HelmChartServiceName = data.HelmChartServiceName.ValueString()
+	}
+
+	if !data.ContainerImage.IsNull() && !data.ContainerImage.IsUnknown() {
+		request.ContainerImage = data.ContainerImage.ValueString()
+	}
+
+	if !data.ContainerArgs.IsNull() && !data.ContainerArgs.IsUnknown() {
+		request.ContainerArgs = data.ContainerArgs.ValueString()
+	}
+
+	if !data.HealthUri.IsNull() && !data.HealthUri.IsUnknown() {
+		request.HealthUri = data.HealthUri.ValueString()
+	}
+
+	if !data.Description.IsNull() && !data.Description.IsUnknown() {
+		request.Description = data.Description.ValueString()
+	}
+
+	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
+		var tags []string
+		data.Tags.ElementsAs(ctx, &tags, true)
+		request.Tags = tags
+	}
+
+	if !data.ContainerEnvironment.IsNull() && !data.ContainerEnvironment.IsUnknown() {
+		containerEnvironments := make([]NvidiaCloudFunctionResourceContainerEnvironmentModel, 0)
+
+		diag.Append(data.ContainerEnvironment.ElementsAs(ctx, &containerEnvironments, false)...)
+
+		if diag.HasError() {
+			return utils.CreateNvidiaCloudFunctionRequest{}
+		}
+
+		for _, v := range containerEnvironments {
+			request.ContainerEnvironment = append(request.ContainerEnvironment, utils.NvidiaCloudFunctionContainerEnvironment{
+				Key:   v.Key.ValueString(),
+				Value: v.Value.ValueString(),
+			})
+		}
+	}
+
+	if data.Health != nil {
+		request.Health = &utils.NvidiaCloudFunctionHealth{
+			URI:                data.Health.Uri.ValueString(),
+			Port:               int(data.Health.Port.ValueInt64()),
+			Protocol:           data.Health.Protocol.ValueString(),
+			Timeout:            data.Health.Timeout.ValueString(),
+			ExpectedStatusCode: int(data.Health.ExpectedStatusCode.ValueInt64()),
+		}
+	}
+
+	if !data.Resources.IsNull() && !data.Resources.IsUnknown() {
+		resources := make([]NvidiaCloudFunctionResourceResourceModel, 0)
+
+		diag.Append(data.Resources.ElementsAs(ctx, &resources, false)...)
+
+		if diag.HasError() {
+			return utils.CreateNvidiaCloudFunctionRequest{}
+		}
+
+		for _, v := range resources {
+			request.Resources = append(request.Resources, utils.NvidiaCloudFunctionResource{
+				Name:    v.Name.ValueString(),
+				Version: v.Version.ValueString(),
+				URI:     v.Uri.ValueString(),
+			})
+		}
+	}
+	return request
+}
+
 func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data NvidiaCloudFunctionResourceModel
 
@@ -354,23 +634,22 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
 
-	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx, data.FunctionID.ValueString(),
-		utils.CreateNvidiaCloudFunctionRequest{
-			FunctionName:         data.FunctionName.ValueString(),
-			HelmChartUri:         data.HelmChartUri.ValueString(),
-			HelmChartServiceName: data.HelmChartServiceName.ValueString(),
-			HelmChartServicePort: int(data.HelmChartServicePort.ValueInt64()),
-			ContainerImageUri:    data.ContainerImageUri.ValueString(),
-			ContainerPort:        int(data.ContainerPort.ValueInt64()),
-			EndpointPath:         data.EndpointPath.ValueString(),
-			HealthEndpointPath:   data.HealthEndpointPath.ValueString(),
-			APIBodyFormat:        data.APIBodyFormat.ValueString(),
-		})
+	request := r.createOrUpdateRequest(ctx, data, &resp.Diagnostics)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(
+		ctx,
+		data.FunctionID.ValueString(),
+		request,
+	)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to create Cloud Function",
-			"Got unexpected result when creating Cloud Function",
+			err.Error(),
 		)
 	}
 
@@ -381,16 +660,6 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(data.DeploymentSpecifications.Elements()) == 0 {
-		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Failed to delete the old Cloud Function deployment",
-				"Got unexpected result when deleting Cloud Function deploymentjson.Unmarshal",
-			)
-		}
-		if resp.Diagnostics.HasError() {
-			return
-		}
 		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
@@ -499,24 +768,21 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
 	defer cancel()
 
+	request := r.createOrUpdateRequest(ctx, plan, &resp.Diagnostics)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx,
 		plan.Id.ValueString(),
-		utils.CreateNvidiaCloudFunctionRequest{
-			FunctionName:         plan.FunctionName.ValueString(),
-			HelmChartUri:         plan.HelmChartUri.ValueString(),
-			HelmChartServiceName: plan.HelmChartServiceName.ValueString(),
-			HelmChartServicePort: int(plan.HelmChartServicePort.ValueInt64()),
-			ContainerImageUri:    plan.ContainerImageUri.ValueString(),
-			ContainerPort:        int(plan.ContainerPort.ValueInt64()),
-			EndpointPath:         plan.EndpointPath.ValueString(),
-			HealthEndpointPath:   plan.HealthEndpointPath.ValueString(),
-			APIBodyFormat:        plan.APIBodyFormat.ValueString(),
-		})
+		request,
+	)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to update Cloud Function",
-			"Got unexpected result when updating Cloud Function",
+			err.Error(),
 		)
 	}
 

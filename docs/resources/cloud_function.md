@@ -15,37 +15,53 @@ Nvidia Cloud Function Resource
 ```terraform
 resource "ngc_cloud_function" "helm_based_cloud_function_example" {
   function_name           = "terraform-cloud-function-resource-example-helm"
-  helm_chart_uri          = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
+  helm_chart              = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
   helm_chart_service_name = "entrypoint"
-  helm_chart_service_port = 8000
-  endpoint_path           = "/echo"
-  health_endpoint_path    = "/health"
+  inference_port          = 8000
+  inference_url           = "/echo"
+  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
       configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-      backend                 = "GFN"
+      backend                 = "dgxc-forge-az33-prd1"
+      instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
       min_instances           = 1
       max_request_concurrency = 1
     }
   ]
+  health = {
+    uri                  = "/health"
+    port                 = 8000
+    expected_status_code = 200
+    timeout              = "PT10S"
+    protocol             = "HTTP"
+  }
+  tags = [
+    "test"
+  ]
+  keep_failed_resource = true
+  timeouts = {
+    create = "10m"
+  }
 }
 
 resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
   function_name           = ngc_cloud_function.helm_based_cloud_function_example.function_name
   function_id             = ngc_cloud_function.helm_based_cloud_function_example.id
-  helm_chart_uri          = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
+  helm_chart              = "https://helm.ngc.nvidia.com/shhh2i6mga69/devinfra/charts/inference-test-0.1.tgz"
   helm_chart_service_name = "entrypoint"
-  helm_chart_service_port = 8000
-  endpoint_path           = "/echo"
-  health_endpoint_path    = "/health"
+  inference_port          = 8000
+  inference_url           = "/echo"
+  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
       configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-      backend                 = "GFN"
+      backend                 = "dgxc-forge-az33-prd1"
+      instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
       min_instances           = 1
@@ -55,33 +71,59 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
 }
 
 resource "ngc_cloud_function" "container_based_cloud_function_example" {
-  function_name        = "terraform-cloud-function-resource-example-container"
-  container_image_uri  = "nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample:latest"
-  container_port       = 8000
-  endpoint_path        = "/echo"
-  health_endpoint_path = "/health"
-  api_body_format      = "CUSTOM"
+  function_name   = "terraform-cloud-function-resource-example-container"
+  container_image = "nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample:latest"
+  inference_port  = 8000
+  inference_url   = "/echo"
+  api_body_format = "CUSTOM"
   deployment_specifications = [
     {
-      backend                 = "GFN"
+      backend                 = "dgxc-forge-az33-prd1"
+      instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
       min_instances           = 1
       max_request_concurrency = 1
     }
   ]
+  container_environment = [
+    {
+      key   = "mock1",
+      value = "mock2"
+    },
+    {
+      key   = "mock3",
+      value = "mock4"
+    },
+    {
+      key   = "mock5",
+      value = "mock6"
+    }
+  ]
+  health = {
+    uri                  = "/health"
+    port                 = 8000
+    expected_status_code = 200
+    timeout              = "PT10S"
+    protocol             = "HTTP"
+  }
+  tags = [
+    "test"
+  ]
 }
 
 resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
-  function_name        = ngc_cloud_function.container_based_cloud_function_example.function_name
-  function_id          = ngc_cloud_function.container_based_cloud_function_example.id
-  container_port       = 8000
-  endpoint_path        = "/echo"
-  health_endpoint_path = "/health"
-  api_body_format      = "CUSTOM"
+  function_name   = ngc_cloud_function.container_based_cloud_function_example.function_name
+  function_id     = ngc_cloud_function.container_based_cloud_function_example.id
+  container_image = "nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample:latest"
+  inference_port  = 8000
+  inference_url   = "/echo"
+  health_uri      = "/health"
+  api_body_format = "CUSTOM"
   deployment_specifications = [
     {
-      backend                 = "GFN"
+      backend                 = "dgxc-forge-az33-prd1"
+      instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
       min_instances           = 1
@@ -96,21 +138,27 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 
 ### Required
 
-- `endpoint_path` (String) Service endpoint Path. Default is "/"
 - `function_name` (String) Function name
+- `inference_url` (String) Service endpoint Path.
 
 ### Optional
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
-- `container_image_uri` (String) Container image uri
-- `container_port` (Number) Container port
+- `container_args` (String) Args to be passed when launching the container
+- `container_environment` (Attributes List) (see [below for nested schema](#nestedatt--container_environment))
+- `container_image` (String) Container image uri
 - `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `description` (String) Description of the function
 - `function_id` (String) Function ID
-- `health_endpoint_path` (String) Service health endpoint Path. Default is "/v2/health/ready"
+- `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
+- `health` (Attributes) (see [below for nested schema](#nestedatt--health))
+- `health_uri` (String, Deprecated) Service health endpoint Path. Default is "/v2/health/ready"
+- `helm_chart` (String) Helm chart registry uri
 - `helm_chart_service_name` (String) Target service name
-- `helm_chart_service_port` (Number) Target service port
-- `helm_chart_uri` (String) Helm chart registry uri
+- `inference_port` (Number) Target port, will be service port or container port base on function-based
 - `keep_failed_resource` (Boolean) Don't delete failed resource. Default is "false"
+- `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
+- `tags` (Set of String) Tags of the function.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
@@ -118,6 +166,15 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 - `id` (String) Read-only Function ID
 - `nca_id` (String) NCA ID
 - `version_id` (String) Function Version ID
+
+<a id="nestedatt--container_environment"></a>
+### Nested Schema for `container_environment`
+
+Required:
+
+- `key` (String) Container environment key
+- `value` (String) Container environment value
+
 
 <a id="nestedatt--deployment_specifications"></a>
 ### Nested Schema for `deployment_specifications`
@@ -134,6 +191,28 @@ Optional:
 
 - `backend` (String) NVCF Backend.
 - `configuration` (String) Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions
+
+
+<a id="nestedatt--health"></a>
+### Nested Schema for `health`
+
+Required:
+
+- `expected_status_code` (Number) Expected return status code considered as successful
+- `port` (Number) Port number where the health listener is running
+- `protocol` (String) HTTP/gPRC protocol type for health endpoint
+- `timeout` (String) ISO 8601 duration string in PnDTnHnMn.nS format
+- `uri` (String) Health endpoint for the container or the helmChart
+
+
+<a id="nestedatt--resources"></a>
+### Nested Schema for `resources`
+
+Required:
+
+- `name` (String) Artifact name
+- `uri` (String) Artifact URI
+- `version` (String) Artifact version
 
 
 <a id="nestedatt--timeouts"></a>

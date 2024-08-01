@@ -3,12 +3,12 @@
 page_title: "ngc_cloud_function Data Source - ngc"
 subcategory: ""
 description: |-
-  Example data source
+  Nvidia Cloud Function Data Source
 ---
 
 # ngc_cloud_function (Data Source)
 
-Example data source
+Nvidia Cloud Function Data Source
 
 ## Example Usage
 
@@ -33,20 +33,35 @@ output "function_details" {
 
 ### Optional
 
+- `api_body_format` (String) API Body Format. Default is "CUSTOM"
+- `container_args` (String) Args to be passed when launching the container
+- `container_environment` (Attributes List) (see [below for nested schema](#nestedatt--container_environment))
+- `container_image` (String) Container image uri
 - `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `description` (String) Description of the function
+- `function_name` (String) Function name
+- `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
+- `health` (Attributes) (see [below for nested schema](#nestedatt--health))
+- `health_uri` (String, Deprecated) Service health endpoint Path. Default is "/v2/health/ready"
+- `helm_chart` (String) Helm chart registry uri
+- `helm_chart_service_name` (String) Target service name
+- `inference_port` (Number) Target port, will be service port or container port base on function-based
+- `inference_url` (String) Service endpoint Path.
+- `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
+- `tags` (Set of String) Tags of the function.
 
 ### Read-Only
 
-- `api_body_format` (String) API Body Format. Default is "CUSTOM"
-- `container_image_uri` (String) Container image uri
-- `container_port` (Number) Container port
-- `endpoint_path` (String) Service endpoint Path. Default is "/"
-- `function_name` (String) Function name
-- `health_endpoint_path` (String) Service health endpoint Path. Default is "/v2/health/ready"
-- `helm_chart_service_name` (String) Target service name
-- `helm_chart_service_port` (Number) Target service port
-- `helm_chart_uri` (String) Helm chart registry uri
 - `nca_id` (String) NCA ID
+
+<a id="nestedatt--container_environment"></a>
+### Nested Schema for `container_environment`
+
+Required:
+
+- `key` (String) Container environment key
+- `value` (String) Container environment value
+
 
 <a id="nestedatt--deployment_specifications"></a>
 ### Nested Schema for `deployment_specifications`
@@ -63,3 +78,25 @@ Optional:
 
 - `backend` (String) NVCF Backend.
 - `configuration` (String) Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions
+
+
+<a id="nestedatt--health"></a>
+### Nested Schema for `health`
+
+Required:
+
+- `expected_status_code` (Number) Expected return status code considered as successful
+- `port` (Number) Port number where the health listener is running
+- `protocol` (String) HTTP/gPRC protocol type for health endpoint
+- `timeout` (String) ISO 8601 duration string in PnDTnHnMn.nS format
+- `uri` (String) Health endpoint for the container or the helmChart
+
+
+<a id="nestedatt--resources"></a>
+### Nested Schema for `resources`
+
+Required:
+
+- `name` (String) Artifact name
+- `uri` (String) Artifact URI
+- `version` (String) Artifact version
