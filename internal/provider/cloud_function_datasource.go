@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -132,11 +131,10 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 	data.Tags = tags
 
 	data.Health = &NvidiaCloudFunctionResourceHealthModel{
-		Protocol: types.StringValue(functionInfo.Health.Protocol),
-		Uri:      types.StringValue(functionInfo.Health.URI),
-		Port:     types.Int64Value(int64(functionInfo.Health.Port)),
-		// FIXME: `timeout` field format is mismatched with doc
-		Timeout:            types.StringValue("PT" + strconv.Itoa(int(functionInfo.Health.Timeout)) + "S"),
+		Protocol:           types.StringValue(functionInfo.Health.Protocol),
+		Uri:                types.StringValue(functionInfo.Health.URI),
+		Port:               types.Int64Value(int64(functionInfo.Health.Port)),
+		Timeout:            types.StringValue(functionInfo.Health.Timeout),
 		ExpectedStatusCode: types.Int64Value(int64(functionInfo.Health.ExpectedStatusCode)),
 	}
 
