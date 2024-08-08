@@ -36,8 +36,8 @@ var TestHelmAPIFormat string
 var TestContainerFunctionName string
 var TestContainerUri string
 var TestContainerPort int
-var TestContainerEndpoint string
-var TestContainerHealthEndpoint string
+var TestContainerInferenceUrl string
+var TestContainerHealthUri string
 var TestContainerAPIFormat string
 var TestContainerEnvironmentVariables []utils.NvidiaCloudFunctionContainerEnvironment
 
@@ -69,20 +69,20 @@ func init() {
 
 	// Helm-Base Function
 	TestHelmFunctionName = fmt.Sprintf("%s-helm-function-01", resourcePrefix)
-	TestHelmUri = os.Getenv("HELM_CHART_URI")
-	TestHelmServiceName = os.Getenv("HELM_CHART_SERVICE_NAME")
-	TestHelmServicePort, _ = strconv.Atoi(os.Getenv("HELM_CHART_SERVICE_PORT"))
-	TestHelmInferenceUrl = os.Getenv("HELM_CHART_ENDPOINT_PATH")
-	TestHelmHealthUri = os.Getenv("HELM_CHART_HEALTH_ENDPOINT_PATH")
-	TestHelmValueOverWrite = os.Getenv("HELM_CHART_VALUE_YAML_OVERWRITE")
+	TestHelmUri = os.Getenv("HELM_URI")
+	TestHelmServiceName = os.Getenv("HELM_SERVICE_NAME")
+	TestHelmServicePort, _ = strconv.Atoi(os.Getenv("HELM_SERVICE_PORT"))
+	TestHelmInferenceUrl = os.Getenv("HELM_INFERENCE_URL")
+	TestHelmHealthUri = os.Getenv("HELM_HEALTH_URI")
+	TestHelmValueOverWrite = os.Getenv("HELM_VALUE_YAML_OVERWRITE")
 	TestHelmAPIFormat = "CUSTOM"
 
 	// Container-Base Function
 	TestContainerFunctionName = fmt.Sprintf("%s-container-function-01", resourcePrefix)
 	TestContainerUri = os.Getenv("CONTAINER_URI")
 	TestContainerPort, _ = strconv.Atoi(os.Getenv("CONTAINER_PORT"))
-	TestContainerEndpoint = os.Getenv("CONTAINER_ENDPOINT_PATH")
-	TestContainerHealthEndpoint = os.Getenv("CONTAINER_HEALTH_ENDPOINT_PATH")
+	TestContainerInferenceUrl = os.Getenv("CONTAINER_INFERENCE_URL")
+	TestContainerHealthUri = os.Getenv("CONTAINER_HEALTH_URI")
 	TestContainerAPIFormat = "CUSTOM"
 	TestContainerEnvironmentVariables = []utils.NvidiaCloudFunctionContainerEnvironment{
 		{
@@ -159,8 +159,8 @@ func CreateContainerFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionRespo
 		FunctionName:         TestContainerFunctionName,
 		ContainerImage:       TestContainerUri,
 		InferencePort:        TestContainerPort,
-		InferenceUrl:         TestContainerEndpoint,
-		HealthUri:            TestContainerHealthEndpoint,
+		InferenceUrl:         TestContainerInferenceUrl,
+		HealthUri:            TestContainerHealthUri,
 		APIBodyFormat:        TestContainerAPIFormat,
 		Tags:                 TestTags,
 		ContainerEnvironment: TestContainerEnvironmentVariables,

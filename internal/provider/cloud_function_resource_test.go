@@ -47,7 +47,13 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 							helm_chart_service_name = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                  = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -72,6 +78,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -89,7 +96,13 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 							helm_chart_service_name = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                  = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -114,6 +127,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -131,7 +145,13 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 							helm_chart_service_name   = "%s"
 							inference_port            = %d
 							inference_url             = "%s"
-							health_uri                = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format           = "%s"
 							deployment_specifications = [
 								{
@@ -154,6 +174,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -175,7 +196,6 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestHelmHealthUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
@@ -189,6 +209,12 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.0", testutils.TestTags[0]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.1", testutils.TestTags[1]),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Update Timeout
@@ -200,7 +226,13 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 							helm_chart_service_name = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -225,6 +257,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -242,7 +275,13 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 							helm_chart_service_name   = "%s"
 							inference_port            = %d
 							inference_url             = "%s"
-							health_uri                = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format           = "%s"
 							deployment_specifications = [
 								{
@@ -264,6 +303,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -283,7 +323,6 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestHelmHealthUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
@@ -294,6 +333,12 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Import
@@ -332,7 +377,13 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 							helm_chart_service_name = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -355,6 +406,7 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -376,7 +428,6 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestHelmHealthUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
 
 					// Verify number of deployment_specifications
@@ -388,6 +439,12 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Update
@@ -400,7 +457,13 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 							helm_chart_service_name = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -423,6 +486,7 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmInferenceUrl,
 					testutils.TestHelmHealthUri,
+					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestBackend,
@@ -444,7 +508,6 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestHelmHealthUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
@@ -455,6 +518,12 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Import
@@ -489,7 +558,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 							container_image           = "%s"
 							inference_port            = %d
 							inference_url             = "%s"
-							health_uri                = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format           = "%s"
 							deployment_specifications = [
 								{
@@ -514,8 +589,9 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
-					testutils.TestContainerEndpoint,
-					testutils.TestContainerHealthEndpoint,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
 					testutils.TestBackend,
 					testutils.TestInstanceType,
@@ -537,8 +613,7 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerEndpoint),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestContainerHealthEndpoint),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
@@ -554,6 +629,12 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.1", testutils.TestTags[1]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.key", testutils.TestContainerEnvironmentVariables[0].Key),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.value", testutils.TestContainerEnvironmentVariables[0].Value),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Update
@@ -564,7 +645,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 							container_image         = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -582,8 +669,9 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
-					testutils.TestContainerEndpoint,
-					testutils.TestContainerHealthEndpoint,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
 					testutils.TestBackend,
 					testutils.TestInstanceType,
@@ -601,8 +689,7 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerEndpoint),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestContainerHealthEndpoint),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
 
 					// Verify number of deployment_specifications
@@ -614,6 +701,12 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Import
@@ -651,7 +744,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 							container_image         = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -670,8 +769,9 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					functionInfo.Function.ID,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
-					testutils.TestContainerEndpoint,
-					testutils.TestContainerHealthEndpoint,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
 					testutils.TestBackend,
 					testutils.TestInstanceType,
@@ -689,8 +789,7 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerEndpoint),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestContainerHealthEndpoint),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
 
 					// Verify number of deployment_specifications
@@ -702,6 +801,12 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Update
@@ -713,7 +818,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 							container_image         = "%s"
 							inference_port          = %d
 							inference_url           = "%s"
-							health_uri              = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
@@ -732,8 +843,9 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					functionInfo.Function.ID,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
-					testutils.TestContainerEndpoint,
-					testutils.TestContainerHealthEndpoint,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
 					testutils.TestBackend,
 					testutils.TestInstanceType,
@@ -752,8 +864,7 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerEndpoint),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health_uri", testutils.TestContainerHealthEndpoint),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
 
 					// Verify number of deployment_specifications
@@ -765,6 +876,12 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 				),
 			},
 			// Verify Function Import

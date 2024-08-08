@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/utils"
 )
@@ -49,6 +51,16 @@ type NvidiaCloudFunctionResourceHealthModel struct {
 	ExpectedStatusCode types.Int64  `tfsdk:"expected_status_code"`
 }
 
+func (m *NvidiaCloudFunctionResourceHealthModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"protocol":             types.StringType,
+		"uri":                  types.StringType,
+		"port":                 types.Int64Type,
+		"timeout":              types.StringType,
+		"expected_status_code": types.Int64Type,
+	}
+}
+
 type NvidiaCloudFunctionResourceResourceModel struct {
 	Name    types.String `tfsdk:"name"`
 	Uri     types.String `tfsdk:"uri"`
@@ -66,28 +78,28 @@ type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
 }
 
 type NvidiaCloudFunctionResourceModel struct {
-	Id                       types.String                            `tfsdk:"id"`
-	FunctionID               types.String                            `tfsdk:"function_id"`
-	VersionID                types.String                            `tfsdk:"version_id"`
-	NcaId                    types.String                            `tfsdk:"nca_id"`
-	FunctionName             types.String                            `tfsdk:"function_name"`
-	InferencePort            types.Int64                             `tfsdk:"inference_port"`
-	HelmChart                types.String                            `tfsdk:"helm_chart"`
-	HelmChartServiceName     types.String                            `tfsdk:"helm_chart_service_name"`
-	ContainerImage           types.String                            `tfsdk:"container_image"`
-	ContainerArgs            types.String                            `tfsdk:"container_args"`
-	ContainerEnvironment     types.List                              `tfsdk:"container_environment"`
-	InferenceUrl             types.String                            `tfsdk:"inference_url"`
-	HealthUri                types.String                            `tfsdk:"health_uri"` // Deprecated
-	Health                   *NvidiaCloudFunctionResourceHealthModel `tfsdk:"health"`
-	APIBodyFormat            types.String                            `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
-	Tags                     types.Set                               `tfsdk:"tags"`
-	Description              types.String                            `tfsdk:"description"`
-	Resources                types.List                              `tfsdk:"resources"`
-	FunctionType             types.String                            `tfsdk:"function_type"`
-	KeepFailedResource       types.Bool                              `tfsdk:"keep_failed_resource"`
-	Timeouts                 timeouts.Value                          `tfsdk:"timeouts"`
+	Id                       types.String   `tfsdk:"id"`
+	FunctionID               types.String   `tfsdk:"function_id"`
+	VersionID                types.String   `tfsdk:"version_id"`
+	NcaId                    types.String   `tfsdk:"nca_id"`
+	FunctionName             types.String   `tfsdk:"function_name"`
+	InferencePort            types.Int64    `tfsdk:"inference_port"`
+	HelmChart                types.String   `tfsdk:"helm_chart"`
+	HelmChartServiceName     types.String   `tfsdk:"helm_chart_service_name"`
+	ContainerImage           types.String   `tfsdk:"container_image"`
+	ContainerArgs            types.String   `tfsdk:"container_args"`
+	ContainerEnvironment     types.List     `tfsdk:"container_environment"`
+	InferenceUrl             types.String   `tfsdk:"inference_url"`
+	HealthUri                types.String   `tfsdk:"health_uri"` // Deprecated
+	Health                   types.Object   `tfsdk:"health"`
+	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
+	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
+	Tags                     types.Set      `tfsdk:"tags"`
+	Description              types.String   `tfsdk:"description"`
+	Resources                types.List     `tfsdk:"resources"`
+	FunctionType             types.String   `tfsdk:"function_type"`
+	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
+	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
@@ -175,14 +187,19 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 	diag.Append(tagsSetFromDiag...)
 	data.Tags = tags
 
-	// FIXME: `timeout` field format is mismatched with doc
-	// data.Health = &NvidiaCloudFunctionResourceHealthModel{
-	// 	Protocol: types.StringValue(functionInfo.Health.Protocol),
-	// 	Uri:      types.StringValue(functionInfo.Health.URI),
-	// 	Port:     types.Int64Value(int64(functionInfo.Health.Port)),
-	// 	Timeout:            types.StringValue("PT" + strconv.Itoa(int(functionInfo.Health.Timeout)) + "S"),
-	// 	ExpectedStatusCode: types.Int64Value(int64(functionInfo.Health.ExpectedStatusCode)),
-	// }
+	if functionInfo.Health != nil {
+		healthObject := &NvidiaCloudFunctionResourceHealthModel{
+			Protocol:           types.StringValue(functionInfo.Health.Protocol),
+			Uri:                types.StringValue(functionInfo.Health.URI),
+			Port:               types.Int64Value(int64(functionInfo.Health.Port)),
+			Timeout:            types.StringValue(functionInfo.Health.Timeout),
+			ExpectedStatusCode: types.Int64Value(int64(functionInfo.Health.ExpectedStatusCode)),
+		}
+
+		healthObjectType, healthObjectTypeDiag := types.ObjectValueFrom(ctx, healthObject.attrTypes(), healthObject)
+		diag.Append(healthObjectTypeDiag...)
+		data.Health = healthObjectType
+	}
 
 	if functionInfo.ContainerEnvironment != nil {
 		containerEnvironments := make([]NvidiaCloudFunctionResourceContainerEnvironmentModel, 0)
@@ -373,6 +390,7 @@ func containerEnvironmentsSchema() schema.ListNestedAttribute {
 func healthSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
+		Computed: true,
 		Attributes: map[string]schema.Attribute{
 			"protocol": schema.StringAttribute{
 				MarkdownDescription: "HTTP/gPRC protocol type for health endpoint",
@@ -584,13 +602,15 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 		}
 	}
 
-	if data.Health != nil {
+	if !data.Health.IsNull() && !data.Health.IsUnknown() {
+		health := &NvidiaCloudFunctionResourceHealthModel{}
+		data.Health.As(ctx, health, basetypes.ObjectAsOptions{})
 		request.Health = &utils.NvidiaCloudFunctionHealth{
-			URI:                data.Health.Uri.ValueString(),
-			Port:               int(data.Health.Port.ValueInt64()),
-			Protocol:           data.Health.Protocol.ValueString(),
-			Timeout:            data.Health.Timeout.ValueString(),
-			ExpectedStatusCode: int(data.Health.ExpectedStatusCode.ValueInt64()),
+			URI:                health.Uri.ValueString(),
+			Port:               int(health.Port.ValueInt64()),
+			Protocol:           health.Protocol.ValueString(),
+			Timeout:            health.Timeout.ValueString(),
+			ExpectedStatusCode: int(health.ExpectedStatusCode.ValueInt64()),
 		}
 	}
 

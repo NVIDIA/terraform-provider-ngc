@@ -117,16 +117,6 @@ type NvidiaCloudFunctionContainerEnvironment struct {
 	Value string `json:"value"`
 }
 
-// FIXME: `timeout` field format is mismatched with doc
-// https://nvidia.slack.com/archives/C04NQTZ9RDZ/p1722334239889549
-type NvidiaCloudFunctionHealthWorkaround struct {
-	Protocol           string  `json:"protocol,omitempty"`
-	URI                string  `json:"uri,omitempty"`
-	Port               int     `json:"port,omitempty"`
-	Timeout            float32 `json:"timeout,omitempty"`
-	ExpectedStatusCode int     `json:"expectedStatusCode,omitempty"`
-}
-
 type NvidiaCloudFunctionHealth struct {
 	Protocol           string `json:"protocol,omitempty"`
 	URI                string `json:"uri,omitempty"`
@@ -175,7 +165,7 @@ type NvidiaCloudFunctionInfo struct {
 	HealthURI               string                                    `json:"healthUri"`
 	CreatedAt               time.Time                                 `json:"createdAt"`
 	Description             string                                    `json:"description"`
-	Health                  *NvidiaCloudFunctionHealthWorkaround      `json:"health"`
+	Health                  *NvidiaCloudFunctionHealth                `json:"health"`
 	ActiveInstances         []NvidiaCloudFunctionActiveInstance       `json:"activeInstances"`
 	Resources               []NvidiaCloudFunctionResource             `json:"resources"`
 	Tags                    []string                                  `json:"tags"`
