@@ -318,7 +318,7 @@ func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionID 
 			select {
 			case <-ctx.Done():
 				return errors.New("timeout occurred")
-			case <-time.After(10 * time.Second):
+			case <-time.After(60 * time.Second):
 				continue
 			}
 		} else {
