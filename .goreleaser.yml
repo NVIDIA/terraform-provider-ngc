@@ -38,27 +38,35 @@ checksum:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-signs: [] # FIXME: Should setup with NSPECT?
-  # - artifacts: checksum
-  #   args:
-  #     # if you are using this in a GitHub action or some other automated pipeline, you
-  #     # need to pass the batch flag to indicate its not interactive.
-  #     - "--batch"
-  #     - "--local-user"
-  #     - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
-  #     - "--output"
-  #     - "${signature}"
-  #     - "--detach-sign"
-  #     - "${artifact}"
+signs:
+  - artifacts: checksum
+    cmd: nvsec
+    signature: "${artifact}.sig"
+    args:
+      - 3s
+      - submit
+      - --job_type
+      - NGC_TF_PROVIDER
+      - --input_file
+      - "${artifact}"
+      - --description
+      - "CI Generate"
+      - --client_id
+      - "{{ .Env.CODE_SIGN_SSA_CLIENT_ID }}"
+      - --client_secret
+      - "{{ .Env.CODE_SIGN_SSA_CLIENT_SECRET }}"
+      - --scope
+      - SIGNING_NGC_TF_PROVIDER
+      - --download
+      - --result_filename
+      - ${signature}
 release:
-  disable: true # We will publish it to artifactory.
-  extra_files:
-    - glob: 'terraform-registry-manifest.json'
-      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
-  # If you want to manually examine the release before its live, uncomment this line:
-  # draft: true
+  disable: true # We publish to artifactory.
 changelog:
   disable: true
 artifactories:
   - name: urm
     target: https://urm.nvidia.com/artifactory/sw-backstage-terraform-local/nvidia/ngc/{{ .Version }}/
+    checksum: true
+    meta: true
+    signature: true
