@@ -4,7 +4,6 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example" {
   helm_chart_service_name = "entrypoint"
   inference_port          = 8000
   inference_url           = "/echo"
-  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
@@ -40,7 +39,6 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
   helm_chart_service_name = "entrypoint"
   inference_port          = 8000
   inference_url           = "/echo"
-  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
@@ -53,6 +51,13 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
       max_request_concurrency = 1
     }
   ]
+  health = {
+    uri                  = "/health"
+    port                 = 8000
+    expected_status_code = 200
+    timeout              = "PT10S"
+    protocol             = "HTTP"
+  }
 }
 
 resource "ngc_cloud_function" "container_based_cloud_function_example" {
