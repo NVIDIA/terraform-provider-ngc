@@ -743,6 +743,10 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		)
 	}
 
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	versionNotFound := true
 	var functionVersion utils.NvidiaCloudFunctionInfo
 
@@ -772,6 +776,10 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 				err.Error(),
 			)
 		}
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
@@ -818,6 +826,10 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 			"Failed to update Cloud Function",
 			err.Error(),
 		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	function := createNvidiaCloudFunctionResponse.Function
@@ -882,6 +894,9 @@ func (r *NvidiaCloudFunctionResource) ImportState(ctx context.Context, req resou
 			"Unexpected Import Identifier",
 			fmt.Sprintf("Expected import identifier with format: function_id,version_id. Got: %q", req.ID),
 		)
+	}
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
