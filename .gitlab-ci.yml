@@ -1,26 +1,26 @@
 include:
-- project: pstooling/gitlab-templates
-  ref: main
-  file:
-  - templates/pulse-in-pipeline/Scan.gitlab-ci.yml
-- project: security/devops-tools/gitlab-templates
-  ref: main
-  file:
-    - vault.gitlab-ci.yml
+  - project: pstooling/gitlab-templates
+    ref: main
+    file:
+      - templates/pulse-in-pipeline/Scan.gitlab-ci.yml
+  - project: security/devops-tools/gitlab-templates
+    ref: main
+    file:
+      - vault.gitlab-ci.yml
 
 workflow:
   rules:
-  # Overwrite to unblock other CI jobs
-  # ref: https://gitlab-master.nvidia.com/omniverse/farm/devops/ci/gitlab/git/-/blob/main/modules/v2/version/_common.yml
-  # run on each merge request
-  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # run on tag creation
-  - if: $CI_COMMIT_TAG !~ "/^$/"
-  # Prevent branch pipeline, otherwise it would run CI twice, first on the new branch and
-  # second on the merge request. We only want to run the CI on the merge request.
-  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-    when: never
+    # Overwrite to unblock other CI jobs
+    # ref: https://gitlab-master.nvidia.com/omniverse/farm/devops/ci/gitlab/git/-/blob/main/modules/v2/version/_common.yml
+    # run on each merge request
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # run on tag creation
+    - if: $CI_COMMIT_TAG !~ "/^$/"
+    # Prevent branch pipeline, otherwise it would run CI twice, first on the new branch and
+    # second on the merge request. We only want to run the CI on the merge request.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
 
 variables:
   TEST_REPORT_FILE: report.xml
@@ -33,37 +33,37 @@ variables:
 
 default:
   tags:
-  - generic
+    - generic
 
 # Only for CI Build, not for production run time usage
 image: golang:1.22.5
 
 stages:
   - test
-  - scan
   - integration-test
   - build
+  - scan
   - deploy
 
 .rules:
   # Do not run on merge request events
   do_not_run_on_merge_request_event:
-  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
   # Run on merge request events
   run_on_merge_request_event:
-  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   # Do not run on schedule events
   do_not_run_on_schedule:
-  - if: $CI_PIPELINE_SOURCE == "schedule"
-    when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
   # Do not run on tags
   do_not_run_on_tags:
-  - if: $CI_COMMIT_TAG !~ "/^$/"
-    when: never
+    - if: $CI_COMMIT_TAG !~ "/^$/"
+      when: never
   # Run on specific branches
   run_on_specific_branches:
-  - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^release\/.*$/
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^release\/.*$/
 
 .vault-secrets:
   id_tokens:
@@ -79,36 +79,18 @@ stages:
 golangci-lint:
   stage: test
   script:
-  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
-  - golangci-lint run
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
+    - golangci-lint run
 
 unit-test:
   stage: test
   script:
-  - go install gotest.tools/gotestsum@latest
-  - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
+    - go install gotest.tools/gotestsum@latest
+    - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
   artifacts:
     when: always
     reports:
       junit: $TEST_REPORT_FILE
-
-# XXX: image is overwrote by gitlab job template.
-security:scan:
-  stage: scan
-  rules:
-  - !reference [.rules, do_not_run_on_schedule]
-  - !reference [.rules, do_not_run_on_tags]
-  - !reference [.rules, run_on_merge_request_event]
-  - !reference [.rules, run_on_specific_branches]
-  extends:
-  - .vault-secrets
-  - .scan-with-report-no-fail
-  variables:
-    PULSE_NSPECT_ID: $NSPECT_ID
-    PULSE_REPO_URL: "${CI_PROJECT_URL}.git"
-    PULSE_SCAN_PROJECT: "terraform-provider-ngc"
-    PULSE_SCAN_PROJECT_VERSION: "${CI_COMMIT_BRANCH}"
-    PULSE_SCAN_VULNERABILITY_REPORT: "nspect_scan_report.json"
 
 # XXX: We pass the NGC_API_KEY with gitlab CI variable in here,
 #   since the golang build image is distroless, which cannot install unzip for nvvault installation.
@@ -116,8 +98,8 @@ security:scan:
 integration-test:
   stage: integration-test
   script:
-  - go install gotest.tools/gotestsum@latest
-  - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
+    - go install gotest.tools/gotestsum@latest
+    - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
   artifacts:
     when: always
     reports:
@@ -126,13 +108,37 @@ integration-test:
 build:
   stage: build
   rules:
-  # Don't run when triggered with tag, since the publish step will include build process.
-  - if: $CI_COMMIT_TAG !~ "/^$/"
-    when: never
-  - when: always
+    # Don't run when triggered with tag, since the publish step will include build process.
+    - if: $CI_COMMIT_TAG !~ "/^$/"
+      when: never
+    - when: always
   script:
-  - go install github.com/goreleaser/goreleaser/v2@latest
-  - goreleaser build --snapshot --clean
+    - go install github.com/goreleaser/goreleaser/v2@latest
+    - goreleaser release --clean --snapshot --skip=publish,announce,sign
+  artifacts:
+    paths:
+     - dist/*.zip
+
+# XXX: image is overwrote by gitlab job template.
+security:scan:
+  stage: scan
+  rules:
+    - !reference [.rules, do_not_run_on_schedule]
+    - !reference [.rules, do_not_run_on_tags]
+    - !reference [.rules, run_on_specific_branches]
+  extends:
+    - .vault-secrets
+    - .scan-with-report-no-fail
+  variables:
+    PULSE_NSPECT_ID: $NSPECT_ID
+    PULSE_REPO_URL: "${CI_PROJECT_URL}.git"
+    PULSE_SCAN_PROJECT: "terraform-provider-ngc"
+    PULSE_SCAN_PROJECT_VERSION: "${CI_COMMIT_BRANCH}"
+    PULSE_SCAN_VULNERABILITY_REPORT: "nspect_scan_report.json"
+    PULSE_SCAN_BINARY_FILE_NAME_PATTERNS: "*.zip"
+    RELATIVE_PATH_TO_SCAN: "./dist"
+  dependencies:
+    - build
 
 # XXX: We pass the deploy key (ARTIFACTORY_URM_SECRET, ARTIFACTORY_URM_USERNAME) with gitlab CI variable in here,
 #   since the golang build image is distroless, which cannot install unzip for nvvault installation.
@@ -140,15 +146,15 @@ build:
 release:
   stage: deploy
   rules:
-  - if: $CI_COMMIT_TAG !~ "/^$/"
+    - if: $CI_COMMIT_TAG !~ "/^$/"
   extends:
-  - .vault-secrets
+    - .vault-secrets
   variables:
     VAULT_ROLE: gitlab-ci-reader-for-tag # Since the phase will be only executed when tag build.
   script:
-  - apt update
-  - apt install -y python3 python3-pip
-  - python3 -m pip install nvsec -i https://urm.nvidia.com/artifactory/api/pypi/sw-cloudsec-pypi/simple --extra-index-url https://urm.nvidia.com/artifactory/api/pypi/sw-cftt-pypi-local/simple --break-system-packages
-  - go install github.com/goreleaser/goreleaser/v2@latest
-  - git clean -f -d # Clean up secret files since we already push them into environment variables, and dirty state repository cannot be built by goreleaser.
-  - goreleaser release --clean
+    - apt update
+    - apt install -y python3 python3-pip
+    - python3 -m pip install nvsec -i https://urm.nvidia.com/artifactory/api/pypi/sw-cloudsec-pypi/simple --extra-index-url https://urm.nvidia.com/artifactory/api/pypi/sw-cftt-pypi-local/simple --break-system-packages
+    - go install github.com/goreleaser/goreleaser/v2@latest
+    - git clean -f -d # Clean up secret files since we already push them into environment variables, and dirty state repository cannot be built by goreleaser.
+    - goreleaser release --clean
