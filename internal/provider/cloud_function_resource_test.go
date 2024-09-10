@@ -357,13 +357,11 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 			},
 			// Verify Function Import
 			{
-				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"keep_failed_resource", // Not assigned when import
-				},
+				ResourceName:            testCloudFunctionResourceFullPath,
+				ImportStateIdFunc:       generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
 			},
 		},
 	})
@@ -547,8 +545,7 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id",          // Not assigned when import
-					"keep_failed_resource", // Not assigned when import
+					"function_id", // Not assigned when import
 				},
 			},
 		},
@@ -725,13 +722,11 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 			},
 			// Verify Function Import
 			{
-				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"keep_failed_resource", // Not assigned when import
-				},
+				ResourceName:            testCloudFunctionResourceFullPath,
+				ImportStateIdFunc:       generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
 			},
 		},
 	})
@@ -905,8 +900,7 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id",          // Not assigned when import
-					"keep_failed_resource", // Not assigned when import
+					"function_id", // Not assigned when import
 				},
 			},
 		},
