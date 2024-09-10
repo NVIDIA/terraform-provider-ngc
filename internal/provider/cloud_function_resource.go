@@ -128,6 +128,10 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 	data.InferencePort = types.Int64Value(int64(functionInfo.InferencePort))
 
+	if data.KeepFailedResource.IsNull() || data.KeepFailedResource.IsUnknown() {
+		data.KeepFailedResource = types.BoolValue(false)
+	}
+
 	if functionInfo.APIBodyFormat != "" {
 		data.APIBodyFormat = types.StringValue(functionInfo.APIBodyFormat)
 	}
