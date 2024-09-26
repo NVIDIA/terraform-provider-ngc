@@ -906,3 +906,126 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
+	var functionName = uuid.New().String()
+	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Verify Function Creation
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+				),
+			},
+			// Verify Function Update again won't change anything
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+				),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
+			},
+			// Verify Function Import
+			{
+				ResourceName:      testCloudFunctionResourceFullPath,
+				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"function_id", // Not assigned when import
+				},
+			},
+		},
+	})
+}

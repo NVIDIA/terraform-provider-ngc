@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -176,9 +178,9 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		data.Description = types.StringValue(functionInfo.Description)
 	}
 
-	if functionDeployment != nil {
-		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
+	deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 
+	if functionDeployment != nil {
 		for _, v := range functionDeployment.DeploymentSpecifications {
 			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
@@ -196,10 +198,11 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
-		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
-		diag.Append(deploymentSpecificationsSetTypeDiag...)
-		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
+
+	deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
+	diag.Append(deploymentSpecificationsSetTypeDiag...)
+	data.DeploymentSpecifications = deploymentSpecificationsSetType
 
 	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
 	diag.Append(tagsSetFromDiag...)
@@ -362,6 +365,11 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 			},
 		},
 		Optional: true,
+		Computed: true,
+		// The value will be auto-generated in NVCF API response when user using legacy health_uri field.
+		PlanModifiers: []planmodifier.List{
+			listplanmodifier.UseStateForUnknown(),
+		},
 	}
 }
 
@@ -409,6 +417,10 @@ func healthSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Computed: true,
+		// The value will be auto-generated in NVCF API response when user using legacy health_uri field.
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"protocol": schema.StringAttribute{
 				MarkdownDescription: "HTTP/gPRC protocol type for health endpoint",
@@ -500,6 +512,9 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Optional:            true,
 				Computed:            true,
 				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"health":    healthSchema(),
 			"resources": resourcesSchema(),
@@ -512,6 +527,9 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "Description of the function",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"function_type": schema.StringAttribute{
 				MarkdownDescription: "Optional function type, used to indicate a STREAMING function. Defaults is \"DEFAULT\".",
