@@ -41,7 +41,7 @@ variables:
   VAULT_MOUNT_PATH: auth/jwt/nvidia/gitlab-master
   VAULT_SECRETS_DEST: ./secrets/secrets
   SONAR_HOST_URL: https://sonar-sw.nvidia.com/
-  PULSE_SCAN_RETRIES: 5
+  PULSE_SCAN_RETRIES: 15 # ref: https://nvidia.slack.com/archives/CDQ4SEGK0/p1727786303927499?thread_ts=1727772896.937369&cid=CDQ4SEGK0
 
 default:
   tags:
