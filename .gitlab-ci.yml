@@ -41,7 +41,6 @@ variables:
   VAULT_MOUNT_PATH: auth/jwt/nvidia/gitlab-master
   VAULT_SECRETS_DEST: ./secrets/secrets
   SONAR_HOST_URL: https://sonar-sw.nvidia.com/
-  PULSE_SCAN_RETRIES: 15 # ref: https://nvidia.slack.com/archives/CDQ4SEGK0/p1727786303927499?thread_ts=1727772896.937369&cid=CDQ4SEGK0
 
 default:
   tags:
@@ -58,13 +57,6 @@ stages:
   - deploy
 
 .rules:
-  # Do not run on merge request events
-  do_not_run_on_merge_request_event:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
-  # Run on merge request events
-  run_on_merge_request_event:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   # Do not run on schedule events
   do_not_run_on_schedule:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -94,28 +86,38 @@ golangci-lint:
     - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
     - golangci-lint run
 
-unit-test:
-  stage: test
-  script:
+.test-base:
+  before_script:
     - go install gotest.tools/gotestsum@latest
-    - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
+  only:
+    changes:
+      - internal/*
+      - tools/*
+      - main.go
+      - go.mod
+      - go.sum
+      - terraform-registry-manifest.json
   artifacts:
     when: always
     reports:
       junit: $TEST_REPORT_FILE
+
+unit-test:
+  stage: test
+  extends:
+    - .test-base
+  script:
+    - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
 
 # XXX: We pass the NGC_API_KEY with gitlab CI variable in here,
 #   since the golang build image is distroless, which cannot install unzip for nvvault installation.
 # And we don't want to maintain another build image in here.
 integration-test:
   stage: integration-test
+  extends:
+    - .test-base
   script:
-    - go install gotest.tools/gotestsum@latest
     - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
-  artifacts:
-    when: always
-    reports:
-      junit: $TEST_REPORT_FILE
 
 build:
   stage: build
@@ -186,6 +188,7 @@ security:scan:
     PULSE_SCAN_PROJECT_VERSION: "${CI_COMMIT_BRANCH}"
     PULSE_SCAN_VULNERABILITY_REPORT: "nspect_scan_report.json"
     PULSE_SCAN_BINARY_FILE_NAME_PATTERNS: "*.zip"
+    PULSE_SCAN_RETRIES: 15
     RELATIVE_PATH_TO_SCAN: "./dist"
   dependencies:
     - build
