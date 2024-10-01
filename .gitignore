@@ -36,3 +36,6 @@ website/vendor
 
 # Test result
 report.xml
+
+# Sonarqube cache
+.scannerwork/
