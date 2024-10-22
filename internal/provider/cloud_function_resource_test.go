@@ -928,6 +928,13 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 								protocol             = "HTTP"
 							}
 							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -938,6 +945,9 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 					testutils.TestContainerHealthUri,
 					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
@@ -959,6 +969,10 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1Uri),
 				),
 			},
 			// Verify Function Update again won't change anything
@@ -977,6 +991,13 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 								protocol             = "HTTP"
 							}
 							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -987,6 +1008,9 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 					testutils.TestContainerHealthUri,
 					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
@@ -1008,6 +1032,10 @@ func TestAccCloudFunctionResource_FunctionWithoutDeployment(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1Uri),
 				),
 				ExpectNonEmptyPlan: false,
 				PlanOnly:           true,

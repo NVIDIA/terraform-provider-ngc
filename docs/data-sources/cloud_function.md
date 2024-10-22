@@ -47,6 +47,7 @@ output "function_details" {
 - `helm_chart_service_name` (String) Target service name
 - `inference_port` (Number) Target port, will be service port or container port base on function-based
 - `inference_url` (String) Service endpoint Path.
+- `models` (Attributes List) (see [below for nested schema](#nestedatt--models))
 - `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
 - `tags` (Set of String) Tags of the function.
 
@@ -90,6 +91,16 @@ Required:
 - `protocol` (String) HTTP/gPRC protocol type for health endpoint
 - `timeout` (String) ISO 8601 duration string in PnDTnHnMn.nS format
 - `uri` (String) Health endpoint for the container or the helmChart
+
+
+<a id="nestedatt--models"></a>
+### Nested Schema for `models`
+
+Required:
+
+- `name` (String) Artifact name
+- `uri` (String) Artifact URI
+- `version` (String) Artifact version
 
 
 <a id="nestedatt--resources"></a>

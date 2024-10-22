@@ -53,6 +53,7 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
 	Tags                     types.Set                               `tfsdk:"tags"`
 	Description              types.String                            `tfsdk:"description"`
+	Models                   types.List                              `tfsdk:"models"`
 	Resources                types.List                              `tfsdk:"resources"`
 	FunctionType             types.String                            `tfsdk:"function_type"`
 }
@@ -175,7 +176,22 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		}
 		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
 		diag.Append(resourcesSetTypeDiag...)
-		data.ContainerEnvironment = resourcesSetType
+		data.Resources = resourcesSetType
+	}
+
+	if functionInfo.Models != nil {
+		models := make([]NvidiaCloudFunctionResourceModelModel, 0)
+		for _, v := range functionInfo.Models {
+			model := NvidiaCloudFunctionResourceModelModel{
+				Name:    types.StringValue(v.Name),
+				Uri:     types.StringValue(v.URI),
+				Version: types.StringValue(v.Version),
+			}
+			models = append(models, model)
+		}
+		modelsSetType, modelsSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
+		diag.Append(modelsSetTypeDiag...)
+		data.Models = modelsSetType
 	}
 }
 
@@ -237,6 +253,7 @@ func (d *NvidiaCloudFunctionDataSource) Schema(ctx context.Context, req datasour
 				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
 			},
 			"health":    healthSchema(),
+			"models":    modelsSchema(),
 			"resources": resourcesSchema(),
 			"tags": schema.SetAttribute{
 				MarkdownDescription: "Tags of the function.",

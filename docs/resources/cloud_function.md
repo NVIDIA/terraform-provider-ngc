@@ -19,7 +19,6 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example" {
   helm_chart_service_name = "entrypoint"
   inference_port          = 8000
   inference_url           = "/echo"
-  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
@@ -55,7 +54,6 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
   helm_chart_service_name = "entrypoint"
   inference_port          = 8000
   inference_url           = "/echo"
-  health_uri              = "/health"
   api_body_format         = "CUSTOM"
   deployment_specifications = [
     {
@@ -68,6 +66,13 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
       max_request_concurrency = 1
     }
   ]
+  health = {
+    uri                  = "/health"
+    port                 = 8000
+    expected_status_code = 200
+    timeout              = "PT10S"
+    protocol             = "HTTP"
+  }
 }
 
 resource "ngc_cloud_function" "container_based_cloud_function_example" {
@@ -157,6 +162,7 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 - `helm_chart_service_name` (String) Target service name
 - `inference_port` (Number) Target port, will be service port or container port base on function-based
 - `keep_failed_resource` (Boolean) Don't delete failed resource. Default is "false"
+- `models` (Attributes List) (see [below for nested schema](#nestedatt--models))
 - `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
 - `tags` (Set of String) Tags of the function.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
@@ -203,6 +209,16 @@ Required:
 - `protocol` (String) HTTP/gPRC protocol type for health endpoint
 - `timeout` (String) ISO 8601 duration string in PnDTnHnMn.nS format
 - `uri` (String) Health endpoint for the container or the helmChart
+
+
+<a id="nestedatt--models"></a>
+### Nested Schema for `models`
+
+Required:
+
+- `name` (String) Artifact name
+- `uri` (String) Artifact URI
+- `version` (String) Artifact version
 
 
 <a id="nestedatt--resources"></a>

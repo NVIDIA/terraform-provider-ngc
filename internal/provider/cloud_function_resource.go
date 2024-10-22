@@ -79,6 +79,12 @@ type NvidiaCloudFunctionResourceResourceModel struct {
 	Version types.String `tfsdk:"version"`
 }
 
+type NvidiaCloudFunctionResourceModelModel struct {
+	Name    types.String `tfsdk:"name"`
+	Uri     types.String `tfsdk:"uri"`
+	Version types.String `tfsdk:"version"`
+}
+
 type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
 	GpuType               types.String `tfsdk:"gpu_type"`
 	Backend               types.String `tfsdk:"backend"`
@@ -108,6 +114,7 @@ type NvidiaCloudFunctionResourceModel struct {
 	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
 	Tags                     types.Set      `tfsdk:"tags"`
 	Description              types.String   `tfsdk:"description"`
+	Models                   types.List     `tfsdk:"models"`
 	Resources                types.List     `tfsdk:"resources"`
 	FunctionType             types.String   `tfsdk:"function_type"`
 	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
@@ -245,7 +252,22 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		}
 		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
 		diag.Append(resourcesSetTypeDiag...)
-		data.ContainerEnvironment = resourcesSetType
+		data.Resources = resourcesSetType
+	}
+
+	if functionInfo.Models != nil {
+		models := make([]NvidiaCloudFunctionResourceModelModel, 0)
+		for _, v := range functionInfo.Models {
+			model := NvidiaCloudFunctionResourceModelModel{
+				Name:    types.StringValue(v.Name),
+				Uri:     types.StringValue(v.URI),
+				Version: types.StringValue(v.Version),
+			}
+			models = append(models, model)
+		}
+		modelsSetType, modelsSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
+		diag.Append(modelsSetTypeDiag...)
+		data.Models = modelsSetType
 	}
 }
 
@@ -391,6 +413,28 @@ func resourcesSchema() schema.ListNestedAttribute {
 	}
 }
 
+func modelsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"name": schema.StringAttribute{
+					MarkdownDescription: "Artifact name",
+					Required:            true,
+				},
+				"version": schema.StringAttribute{
+					MarkdownDescription: "Artifact version",
+					Required:            true,
+				},
+				"uri": schema.StringAttribute{
+					MarkdownDescription: "Artifact URI",
+					Required:            true,
+				},
+			},
+		},
+		Optional: true,
+	}
+}
+
 func containerEnvironmentsSchema() schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
@@ -514,6 +558,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			},
 			"health":    healthSchema(),
 			"resources": resourcesSchema(),
+			"models":    modelsSchema(),
 			"tags": schema.SetAttribute{
 				MarkdownDescription: "Tags of the function.",
 				ElementType:         types.StringType,
@@ -657,6 +702,24 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 
 		for _, v := range resources {
 			request.Resources = append(request.Resources, utils.NvidiaCloudFunctionResource{
+				Name:    v.Name.ValueString(),
+				Version: v.Version.ValueString(),
+				URI:     v.Uri.ValueString(),
+			})
+		}
+	}
+
+	if !data.Models.IsNull() && !data.Models.IsUnknown() {
+		models := make([]NvidiaCloudFunctionResourceModelModel, 0)
+
+		diag.Append(data.Models.ElementsAs(ctx, &models, false)...)
+
+		if diag.HasError() {
+			return utils.CreateNvidiaCloudFunctionRequest{}
+		}
+
+		for _, v := range models {
+			request.Models = append(request.Models, utils.NvidiaCloudFunctionModel{
 				Name:    v.Name.ValueString(),
 				Version: v.Version.ValueString(),
 				URI:     v.Uri.ValueString(),
