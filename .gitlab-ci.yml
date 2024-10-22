@@ -100,6 +100,10 @@ unit-test:
     - .test-base
   script:
     - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE test
+  artifacts:
+    paths:
+     - coverage_ut.out
+     - report_ut.xml
 
 # XXX: We pass the NGC_API_KEY with gitlab CI variable in here,
 #   since the golang build image is distroless, which cannot install unzip for nvvault installation.
@@ -110,7 +114,10 @@ integration-test:
     - .test-base
   script:
     - make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=$TEST_REPORT_FILE testacc
-
+  artifacts:
+    paths:
+     - coverage_acc.out
+     - report_acc.xml
 build:
   stage: build
   rules:
@@ -145,6 +152,11 @@ sonarqube-check:
     - master
     - main
     - develop
+  needs:
+  - job: unit-test
+    artifacts: true
+  - job: integration-test
+    artifacts: true
 
 sonarqube-vulnerability-report:
   stage: scan
