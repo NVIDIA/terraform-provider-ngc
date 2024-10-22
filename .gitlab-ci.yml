@@ -89,14 +89,6 @@ golangci-lint:
 .test-base:
   before_script:
     - go install gotest.tools/gotestsum@latest
-  only:
-    changes:
-      - internal/*
-      - tools/*
-      - main.go
-      - go.mod
-      - go.sum
-      - terraform-registry-manifest.json
   artifacts:
     when: always
     reports:

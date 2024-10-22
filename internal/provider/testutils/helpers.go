@@ -55,6 +55,10 @@ var TestBackend string
 var TestInstanceType string
 var TestGpuType string
 
+var TestModel1Name string
+var TestModel1Version string
+var TestModel1Uri string
+
 var TestTags []string
 
 func init() {
@@ -104,6 +108,10 @@ func init() {
 	TestInstanceType = os.Getenv("INSTANCE_TYPE")
 	TestGpuType = os.Getenv("GPU_TYPE")
 	TestFunctionType = "DEFAULT"
+
+	TestModel1Name = os.Getenv("MODEL_1_NAME")
+	TestModel1Version = os.Getenv("MODEL_1_VERSION")
+	TestModel1Uri = os.Getenv("MODEL_1_URI")
 
 	TestTags = []string{"mock1", "mock2"}
 }
