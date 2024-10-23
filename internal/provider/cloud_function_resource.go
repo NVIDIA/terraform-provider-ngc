@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -106,16 +106,16 @@ type NvidiaCloudFunctionResourceModel struct {
 	HelmChartServiceName     types.String   `tfsdk:"helm_chart_service_name"`
 	ContainerImage           types.String   `tfsdk:"container_image"`
 	ContainerArgs            types.String   `tfsdk:"container_args"`
-	ContainerEnvironment     types.List     `tfsdk:"container_environment"`
+	ContainerEnvironment     types.Set      `tfsdk:"container_environment"`
 	InferenceUrl             types.String   `tfsdk:"inference_url"`
 	HealthUri                types.String   `tfsdk:"health_uri"` // Deprecated
 	Health                   types.Object   `tfsdk:"health"`
 	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
+	DeploymentSpecifications types.Set      `tfsdk:"deployment_specifications"`
 	Tags                     types.Set      `tfsdk:"tags"`
 	Description              types.String   `tfsdk:"description"`
-	Models                   types.List     `tfsdk:"models"`
-	Resources                types.List     `tfsdk:"resources"`
+	Models                   types.Set      `tfsdk:"models"`
+	Resources                types.Set      `tfsdk:"resources"`
 	FunctionType             types.String   `tfsdk:"function_type"`
 	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
 	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
@@ -181,9 +181,8 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		data.Description = types.StringValue(functionInfo.Description)
 	}
 
-	deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
-
-	if functionDeployment != nil {
+	if functionDeployment != nil && functionDeployment.DeploymentSpecifications != nil {
+		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 		for _, v := range functionDeployment.DeploymentSpecifications {
 			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
 				Backend:               types.StringValue(v.Backend),
@@ -201,11 +200,10 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
+		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.SetValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
+		diag.Append(deploymentSpecificationsSetTypeDiag...)
+		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
-
-	deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
-	diag.Append(deploymentSpecificationsSetTypeDiag...)
-	data.DeploymentSpecifications = deploymentSpecificationsSetType
 
 	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
 	diag.Append(tagsSetFromDiag...)
@@ -227,6 +225,10 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 	if functionInfo.ContainerEnvironment != nil {
 		containerEnvironments := make([]NvidiaCloudFunctionResourceContainerEnvironmentModel, 0)
+
+		sort.Slice(functionInfo.ContainerEnvironment, func(i, j int) bool {
+			return functionInfo.ContainerEnvironment[i].Key < functionInfo.ContainerEnvironment[j].Key
+		})
 		for _, v := range functionInfo.ContainerEnvironment {
 			containerEnvironment := NvidiaCloudFunctionResourceContainerEnvironmentModel{
 				Key:   types.StringValue(v.Key),
@@ -235,7 +237,7 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 
 			containerEnvironments = append(containerEnvironments, containerEnvironment)
 		}
-		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.ListValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
+		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.SetValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
 		diag.Append(containerEnvironmentsSetTypeDiag...)
 		data.ContainerEnvironment = containerEnvironmentsSetType
 	}
@@ -250,7 +252,7 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 			}
 			resources = append(resources, resource)
 		}
-		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
+		resourcesSetType, resourcesSetTypeDiag := types.SetValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
 		diag.Append(resourcesSetTypeDiag...)
 		data.Resources = resourcesSetType
 	}
@@ -265,7 +267,7 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 			}
 			models = append(models, model)
 		}
-		modelsSetType, modelsSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
+		modelsSetType, modelsSetTypeDiag := types.SetValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
 		diag.Append(modelsSetTypeDiag...)
 		data.Models = modelsSetType
 	}
@@ -348,8 +350,8 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 	return functionDeployment, false
 }
 
-func deploymentSpecificationsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
+func deploymentSpecificationsSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"configuration": schema.StringAttribute{
@@ -383,16 +385,11 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 			},
 		},
 		Optional: true,
-		Computed: true,
-		// The value will be auto-generated in NVCF API response when user using legacy health_uri field.
-		PlanModifiers: []planmodifier.List{
-			listplanmodifier.UseStateForUnknown(),
-		},
 	}
 }
 
-func resourcesSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
+func resourcesSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"name": schema.StringAttribute{
@@ -413,8 +410,8 @@ func resourcesSchema() schema.ListNestedAttribute {
 	}
 }
 
-func modelsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
+func modelsSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"name": schema.StringAttribute{
@@ -435,8 +432,8 @@ func modelsSchema() schema.ListNestedAttribute {
 	}
 }
 
-func containerEnvironmentsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
+func containerEnvironmentsSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"key": schema.StringAttribute{
