@@ -40,3 +40,6 @@ coverage*.out
 
 # Sonarqube cache
 .scannerwork/
+
+# Test files
+test-config-stg.env

@@ -45,16 +45,16 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	InferencePort            types.Int64                             `tfsdk:"inference_port"`
 	ContainerImage           types.String                            `tfsdk:"container_image"`
 	ContainerArgs            types.String                            `tfsdk:"container_args"`
-	ContainerEnvironment     types.List                              `tfsdk:"container_environment"`
+	ContainerEnvironment     types.Set                               `tfsdk:"container_environment"`
 	InferenceUrl             types.String                            `tfsdk:"inference_url"`
 	HealthUri                types.String                            `tfsdk:"health_uri"`
 	Health                   *NvidiaCloudFunctionResourceHealthModel `tfsdk:"health"`
 	APIBodyFormat            types.String                            `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
+	DeploymentSpecifications types.Set                               `tfsdk:"deployment_specifications"`
 	Tags                     types.Set                               `tfsdk:"tags"`
 	Description              types.String                            `tfsdk:"description"`
-	Models                   types.List                              `tfsdk:"models"`
-	Resources                types.List                              `tfsdk:"resources"`
+	Models                   types.Set                               `tfsdk:"models"`
+	Resources                types.Set                               `tfsdk:"resources"`
 	FunctionType             types.String                            `tfsdk:"function_type"`
 }
 
@@ -112,7 +112,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		data.Description = types.StringValue(functionInfo.Description)
 	}
 
-	if functionDeployment != nil {
+	if functionDeployment.DeploymentSpecifications != nil {
 		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 
 		for _, v := range functionDeployment.DeploymentSpecifications {
@@ -132,7 +132,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
-		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
+		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.SetValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
 		diag.Append(deploymentSpecificationsSetTypeDiag...)
 		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
@@ -159,7 +159,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 
 			containerEnvironments = append(containerEnvironments, containerEnvironment)
 		}
-		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.ListValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
+		containerEnvironmentsSetType, containerEnvironmentsSetTypeDiag := types.SetValueFrom(ctx, containerEnvironmentsSchema().NestedObject.Type(), containerEnvironments)
 		diag.Append(containerEnvironmentsSetTypeDiag...)
 		data.ContainerEnvironment = containerEnvironmentsSetType
 	}
@@ -174,7 +174,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 			}
 			resources = append(resources, resource)
 		}
-		resourcesSetType, resourcesSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
+		resourcesSetType, resourcesSetTypeDiag := types.SetValueFrom(ctx, resourcesSchema().NestedObject.Type(), resources)
 		diag.Append(resourcesSetTypeDiag...)
 		data.Resources = resourcesSetType
 	}
@@ -189,7 +189,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 			}
 			models = append(models, model)
 		}
-		modelsSetType, modelsSetTypeDiag := types.ListValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
+		modelsSetType, modelsSetTypeDiag := types.SetValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
 		diag.Append(modelsSetTypeDiag...)
 		data.Models = modelsSetType
 	}
