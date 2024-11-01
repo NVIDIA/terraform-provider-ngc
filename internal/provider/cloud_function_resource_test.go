@@ -590,6 +590,33 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 									value = "%s"
 								}
 							]
+							secrets = [
+								{
+									name  = "%s"
+									value = "test-raw"
+								},
+								{
+									name  = "%s"
+									value = <<EOF
+									{
+										"AWS_REGION": "us-west-2",
+										"AWS_BUCKET": "content",
+										"AWS_ACCESS_KEY_ID": "content-key-id",
+										"AWS_SECRET_ACCESS_KEY": "content-access-key",
+										"AWS_SESSION_TOKEN": "content-session-token"
+									}
+									EOF
+								},
+								{
+									name  = "%s"
+									value = <<EOF
+									{
+										"AWS_ACCESS_KEY_ID" : "s3.us-west-2-key-id",
+										"AWS_SECRET_ACCESS_KEY" : "s3.us-west-2-access-key"
+									}
+									EOF
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -607,6 +634,9 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					testutils.TestTags[1],
 					testutils.TestContainerEnvironmentVariables[0].Key,
 					testutils.TestContainerEnvironmentVariables[0].Value,
+					testutils.TestSecretNames[0],
+					testutils.TestSecretNames[1],
+					testutils.TestSecretNames[2],
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
@@ -634,6 +664,11 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.0", testutils.TestTags[0]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.1", testutils.TestTags[1]),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.0.name", testutils.TestSecretNames[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.1.name", testutils.TestSecretNames[1]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.2.name", testutils.TestSecretNames[2]),
+
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.key", testutils.TestContainerEnvironmentVariables[0].Key),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.value", testutils.TestContainerEnvironmentVariables[0].Value),
 
@@ -670,6 +705,40 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 									max_request_concurrency = 2
 								}
 							]
+							tags = ["%s","%s"]
+							container_environment = [
+								{
+									key   = "%s"
+									value = "%s"
+								}
+							]
+							secrets = [
+								{
+									name  = "%s"
+									value = "test-raw"
+								},
+								{
+									name  = "%s"
+									value = <<EOF
+									{
+										"AWS_REGION": "us-west-2",
+										"AWS_BUCKET": "content",
+										"AWS_ACCESS_KEY_ID": "content-key-id",
+										"AWS_SECRET_ACCESS_KEY": "content-access-key",
+										"AWS_SESSION_TOKEN": "content-session-token"
+									}
+									EOF
+								},
+								{
+									name  = "%s"
+									value = <<EOF
+									{
+										"AWS_ACCESS_KEY_ID" : "s3.us-west-2-key-id",
+										"AWS_SECRET_ACCESS_KEY" : "s3.us-west-2-access-key"
+									}
+									EOF
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -683,6 +752,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					testutils.TestBackend,
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
+					testutils.TestTags[0],
+					testutils.TestTags[1],
+					testutils.TestContainerEnvironmentVariables[0].Key,
+					testutils.TestContainerEnvironmentVariables[0].Value,
+					testutils.TestSecretNames[0],
+					testutils.TestSecretNames[1],
+					testutils.TestSecretNames[2],
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
@@ -698,6 +774,16 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.0", testutils.TestTags[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.1", testutils.TestTags[1]),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.0.name", testutils.TestSecretNames[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.1.name", testutils.TestSecretNames[1]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "secrets.2.name", testutils.TestSecretNames[2]),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.key", testutils.TestContainerEnvironmentVariables[0].Key),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_environment.0.value", testutils.TestContainerEnvironmentVariables[0].Value),
 
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
@@ -718,11 +804,13 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 			},
 			// Verify Function Import
 			{
-				ResourceName:            testCloudFunctionResourceFullPath,
-				ImportStateIdFunc:       generateStateResourceId(testCloudFunctionResourceFullPath),
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ResourceName:      testCloudFunctionResourceFullPath,
+				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"secrets", // Won't retrieve from API.
+				},
 			},
 		},
 	})

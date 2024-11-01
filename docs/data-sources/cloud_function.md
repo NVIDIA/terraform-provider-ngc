@@ -35,9 +35,9 @@ output "function_details" {
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
 - `container_args` (String) Args to be passed when launching the container
-- `container_environment` (Attributes List) (see [below for nested schema](#nestedatt--container_environment))
+- `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
-- `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `deployment_specifications` (Attributes Set) (see [below for nested schema](#nestedatt--deployment_specifications))
 - `description` (String) Description of the function
 - `function_name` (String) Function name
 - `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
@@ -47,8 +47,8 @@ output "function_details" {
 - `helm_chart_service_name` (String) Target service name
 - `inference_port` (Number) Target port, will be service port or container port base on function-based
 - `inference_url` (String) Service endpoint Path.
-- `models` (Attributes List) (see [below for nested schema](#nestedatt--models))
-- `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
+- `models` (Attributes Set) (see [below for nested schema](#nestedatt--models))
+- `resources` (Attributes Set) (see [below for nested schema](#nestedatt--resources))
 - `tags` (Set of String) Tags of the function.
 
 ### Read-Only

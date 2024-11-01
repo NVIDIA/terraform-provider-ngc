@@ -60,6 +60,7 @@ var TestModel1Version string
 var TestModel1Uri string
 
 var TestTags []string
+var TestSecretNames []string
 
 func init() {
 	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
@@ -114,6 +115,7 @@ func init() {
 	TestModel1Uri = os.Getenv("MODEL_1_URI")
 
 	TestTags = []string{"mock1", "mock2"}
+	TestSecretNames = []string{"1test-raw", "test-json", "test.s3.us-west-2.amazonaws.com"}
 }
 
 func CreateHelmFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionResponse {

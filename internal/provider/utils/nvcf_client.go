@@ -84,6 +84,8 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	ctx = tflog.SetField(ctx, "response_body", string(body))
 	ctx = tflog.SetField(ctx, "request_body", requestBody)
 
+	tflog.Debug(ctx, "Send request")
+
 	if _, ok := expectedStatusCode[response.StatusCode]; !ok {
 		tflog.Error(ctx, "got unexpected response code")
 
@@ -114,6 +116,11 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	}
 
 	return err
+}
+
+type NvidiaCloudFunctionSecret struct {
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
 }
 
 type NvidiaCloudFunctionModel struct {
@@ -178,6 +185,7 @@ type NvidiaCloudFunctionInfo struct {
 	Health                  *NvidiaCloudFunctionHealth                `json:"health"`
 	ActiveInstances         []NvidiaCloudFunctionActiveInstance       `json:"activeInstances"`
 	Resources               []NvidiaCloudFunctionResource             `json:"resources"`
+	Secrets                 []string                                  `json:"secrets"`
 	Tags                    []string                                  `json:"tags"`
 	FunctionType            string                                    `json:"functionType"`
 }
@@ -197,6 +205,7 @@ type CreateNvidiaCloudFunctionRequest struct {
 	Description          string                                    `json:"description,omitempty"`
 	Health               *NvidiaCloudFunctionHealth                `json:"health,omitempty"`
 	Resources            []NvidiaCloudFunctionResource             `json:"resources,omitempty"`
+	Secrets              []NvidiaCloudFunctionSecret               `json:"secrets,omitempty"`
 	Tags                 []string                                  `json:"tags,omitempty"`
 	FunctionType         string                                    `json:"functionType"`
 }

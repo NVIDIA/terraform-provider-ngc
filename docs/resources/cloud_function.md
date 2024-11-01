@@ -125,6 +125,28 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
   inference_url   = "/echo"
   health_uri      = "/health"
   api_body_format = "CUSTOM"
+  models = [
+    {
+      name    = "gemma_2b_base_2"
+      version = "1.1"
+      uri     = "/v2/org/nvidia/team/nemo/models/gemma_2b_base/1.1/files"
+    },
+    {
+      name    = "gemma_2b_base_1"
+      version = "1.1"
+      uri     = "/v2/org/nvidia/team/nemo/models/gemma_2b_base/1.1/files"
+    },
+    {
+      name    = "gemma_2b_base_3"
+      version = "1.1"
+      uri     = "/v2/org/nvidia/team/nemo/models/gemma_2b_base/1.1/files"
+    },
+    {
+      name    = "gemma_2b_base"
+      version = "1.1"
+      uri     = "/v2/org/nvidia/team/nemo/models/gemma_2b_base/1.1/files"
+    },
+  ]
   deployment_specifications = [
     {
       backend                 = "dgxc-forge-az33-prd1"
@@ -134,6 +156,57 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
       min_instances           = 1
       max_request_concurrency = 1
     }
+  ]
+  container_environment = [
+    {
+      key   = "test1"
+      value = "test1"
+    },
+    {
+      key   = "test2"
+      value = "test2"
+    },
+    {
+      key   = "test3"
+      value = "test3"
+    }
+  ]
+  health = {
+    uri                  = "/health"
+    port                 = 8000
+    expected_status_code = 200
+    timeout              = "PT10S"
+    protocol             = "HTTP"
+  }
+  secrets = [
+    {
+      name  = "test-raw"
+      value = "test-raw"
+    },
+    {
+      name  = "test-json",
+      value = <<EOF
+      {
+        "AWS_REGION": "us-west-2",
+        "AWS_BUCKET": "content",
+        "AWS_ACCESS_KEY_ID": "content-key-id",
+        "AWS_SECRET_ACCESS_KEY": "content-access-key",
+        "AWS_SESSION_TOKEN": "content-session-token"
+      }
+      EOF
+    },
+    {
+      name  = "test.s3.us-west-2.amazonaws.com",
+      value = <<EOF
+      {
+        "AWS_ACCESS_KEY_ID" : "s3.us-west-2-key-id",
+        "AWS_SECRET_ACCESS_KEY" : "s3.us-west-2-access-key"
+      }
+      EOF
+    }
+  ]
+  tags = [
+    "test"
   ]
 }
 ```
@@ -150,9 +223,9 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
 - `container_args` (String) Args to be passed when launching the container
-- `container_environment` (Attributes List) (see [below for nested schema](#nestedatt--container_environment))
+- `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
-- `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `deployment_specifications` (Attributes Set) (see [below for nested schema](#nestedatt--deployment_specifications))
 - `description` (String) Description of the function
 - `function_id` (String) Function ID
 - `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
@@ -162,8 +235,9 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
 - `helm_chart_service_name` (String) Target service name
 - `inference_port` (Number) Target port, will be service port or container port base on function-based
 - `keep_failed_resource` (Boolean) Don't delete failed resource. Default is "false"
-- `models` (Attributes List) (see [below for nested schema](#nestedatt--models))
-- `resources` (Attributes List) (see [below for nested schema](#nestedatt--resources))
+- `models` (Attributes Set) (see [below for nested schema](#nestedatt--models))
+- `resources` (Attributes Set) (see [below for nested schema](#nestedatt--resources))
+- `secrets` (Attributes Set) (see [below for nested schema](#nestedatt--secrets))
 - `tags` (Set of String) Tags of the function.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
@@ -229,6 +303,15 @@ Required:
 - `name` (String) Artifact name
 - `uri` (String) Artifact URI
 - `version` (String) Artifact version
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Required:
+
+- `name` (String) Secret name
+- `value` (String, Sensitive) Secret value. Must be a string or json node.
 
 
 <a id="nestedatt--timeouts"></a>
