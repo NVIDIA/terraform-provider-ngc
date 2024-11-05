@@ -73,6 +73,11 @@ func (m *NvidiaCloudFunctionResourceHealthModel) attrTypes() map[string]attr.Typ
 	}
 }
 
+type NvidiaCloudFunctionResourceSecretModel struct {
+	Name  types.String `tfsdk:"name"`
+	Value types.String `tfsdk:"value"`
+}
+
 type NvidiaCloudFunctionResourceResourceModel struct {
 	Name    types.String `tfsdk:"name"`
 	Uri     types.String `tfsdk:"uri"`
@@ -119,9 +124,10 @@ type NvidiaCloudFunctionResourceModel struct {
 	FunctionType             types.String   `tfsdk:"function_type"`
 	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
 	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
+	Secrets                  types.Set      `tfsdk:"secrets"`
 }
 
-func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
+func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBaseOnResponse(
 	ctx context.Context, diag *diag.Diagnostics,
 	userProvideFunctionID types.String,
 	data *NvidiaCloudFunctionResourceModel,
@@ -271,6 +277,8 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModel(
 		diag.Append(modelsSetTypeDiag...)
 		data.Models = modelsSetType
 	}
+
+	// We don't update Secret from response, since the secret won't return in response.
 }
 
 func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, client utils.NVCFClient, function utils.NvidiaCloudFunctionInfo) (utils.NvidiaCloudFunctionDeployment, bool) {
@@ -483,6 +491,25 @@ func healthSchema() schema.SingleNestedAttribute {
 	}
 }
 
+func secretsSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"name": schema.StringAttribute{
+					MarkdownDescription: "Secret name",
+					Required:            true,
+				},
+				"value": schema.StringAttribute{
+					MarkdownDescription: "Secret value. Must be a string or json node.",
+					Required:            true,
+					Sensitive:           true,
+				},
+			},
+		},
+		Optional: true,
+	}
+}
+
 func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
@@ -582,6 +609,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Default:             stringdefault.StaticString("CUSTOM"),
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
+			"secrets":                   secretsSchema(),
 			"keep_failed_resource": schema.BoolAttribute{
 				MarkdownDescription: "Don't delete failed resource. Default is \"false\"",
 				Optional:            true,
@@ -620,6 +648,7 @@ func (r *NvidiaCloudFunctionResource) Metadata(ctx context.Context, req resource
 	resp.TypeName = req.ProviderTypeName + "_cloud_function"
 }
 
+//nolint:gocyclo
 func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics) utils.CreateNvidiaCloudFunctionRequest {
 	request := utils.CreateNvidiaCloudFunctionRequest{
 		FunctionName:  data.FunctionName.ValueString(),
@@ -651,6 +680,35 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 
 	if !data.Description.IsNull() && !data.Description.IsUnknown() {
 		request.Description = data.Description.ValueString()
+	}
+
+	if !data.Secrets.IsNull() && !data.Secrets.IsUnknown() {
+		secrets := make([]NvidiaCloudFunctionResourceSecretModel, 0)
+		diag.Append(data.Secrets.ElementsAs(ctx, &secrets, false)...)
+
+		if diag.HasError() {
+			return utils.CreateNvidiaCloudFunctionRequest{}
+		}
+
+		for _, v := range secrets {
+			var secretValue interface{}
+			if v.Value.ValueString() != "" {
+				err := json.Unmarshal([]byte(v.Value.ValueString()), &secretValue)
+
+				// When the input is not a valid json, we will put it as string directly.
+				if err != nil {
+					request.Secrets = append(request.Secrets, utils.NvidiaCloudFunctionSecret{
+						Name:  v.Name.ValueString(),
+						Value: v.Name.ValueString(),
+					})
+				} else {
+					request.Secrets = append(request.Secrets, utils.NvidiaCloudFunctionSecret{
+						Name:  v.Name.ValueString(),
+						Value: secretValue,
+					})
+				}
+			}
+		}
 	}
 
 	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
@@ -772,7 +830,7 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	function := createNvidiaCloudFunctionResponse.Function
 
 	if len(data.DeploymentSpecifications.Elements()) == 0 {
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
 
@@ -780,7 +838,7 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 			r.deleteFailedDeploymentVersion(ctx, data.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, &functionDeployment)
 	}
 
 	// Save data into Terraform state
@@ -860,7 +918,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, data.FunctionID, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
+	r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -921,7 +979,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, nil)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, nil)
 	} else {
 		functionDeployment, hasError := createDeployment(ctx, plan, &resp.Diagnostics, *r.client, function)
 
@@ -938,7 +996,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModel(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, &functionDeployment)
 	}
 
 	// Save updated data into Terraform state
