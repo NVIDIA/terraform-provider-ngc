@@ -23,6 +23,7 @@ Nvidia Cloud Function Resource
 ### Optional
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
+- `authorized_parties` (Attributes Set) Associated authorized parties for a specific version of a function (see [below for nested schema](#nestedatt--authorized_parties))
 - `container_args` (String) Args to be passed when launching the container
 - `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
@@ -47,6 +48,18 @@ Nvidia Cloud Function Resource
 - `id` (String) Read-only Function ID
 - `nca_id` (String) NCA ID
 - `version_id` (String) Function Version ID
+
+<a id="nestedatt--authorized_parties"></a>
+### Nested Schema for `authorized_parties`
+
+Required:
+
+- `nca_id` (String) NVIDIA Cloud Account authorized to invoke the function
+
+Optional:
+
+- `client_id` (String) Client Id -- 'sub' claim in the JWT. This field should not be specified anymore.
+
 
 <a id="nestedatt--container_environment"></a>
 ### Nested Schema for `container_environment`
