@@ -27,10 +27,6 @@ workflow:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     # run on tag creation
     - if: $CI_COMMIT_TAG !~ "/^$/"
-    # Prevent branch pipeline, otherwise it would run CI twice, first on the new branch and
-    # second on the merge request. We only want to run the CI on the merge request.
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-      when: never
 
 variables:
   TEST_REPORT_FILE: report.xml
