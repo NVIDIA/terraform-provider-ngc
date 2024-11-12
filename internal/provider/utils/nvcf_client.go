@@ -43,12 +43,14 @@ func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
 	return c.HttpClient
 }
 
+type RequestStatusModel struct {
+	StatusCode        string `json:"statusCode"`
+	StatusDescription string `json:"statusDescription"`
+	RequestID         string `json:"requestId"`
+}
+
 type ErrorResponse struct {
-	Type     string `json:"type"`
-	Title    string `json:"title"`
-	Status   int    `json:"status"`
-	Detail   string `json:"detail"`
-	Instance string `json:"instance"`
+	RequestStatus RequestStatusModel `json:"requestStatus"`
 }
 
 func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any, expectedStatusCode map[int]bool) error {
@@ -101,9 +103,9 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		if err != nil {
 			ctx = tflog.SetField(ctx, "response_body", string(body))
 			tflog.Error(ctx, "failed to parse error response body")
-			return err
+			return fmt.Errorf("failed to parse error response body. Response body: %s", string(body))
 		}
-		return errors.New(errResponseObject.Detail)
+		return errors.New(errResponseObject.RequestStatus.StatusDescription)
 	}
 
 	if responseObject != nil {

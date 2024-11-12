@@ -140,15 +140,15 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 	mockDeploymentSpecification,
 )
 
-var mockErrorDetail = "Validation failure"
+var mockErrorDetail = "Validation failed - [All allocated GPU instances in use - contact your support team]"
 var mockErrorResponse = fmt.Sprintf(
 	`
 	{
-	"type": "about:blank",
-	"title": "Bad Request",
-	"status": 400,
-	"detail": "%s",
-	"instance": "/v2/nvcf/accounts/2Q-6YGjFk5wg59_WCMW9x0zJyrYOkTeRdKbQIpYyXFo/deployments/functions/985cc4d8-0d14-4a97-953e-ef51977d4945/versions/88f8c7d3-8d94-4c59-8d56-4bd02fbad6ba"
+		"requestStatus": {
+			"statusCode": "INVALID_REQUEST",
+			"statusDescription": "%s",
+			"requestId": "a3023cc6-2705972"
+		}
 	}
 	`,
 	mockErrorDetail,
@@ -419,7 +419,7 @@ func TestNVCFClient_CreateNvidiaCloudFunction(t *testing.T) {
 						nvcfRequestHeaders,
 						createContainerBasedNvidiaCloudFunctionReq,
 						mockErrorResponse,
-						500,
+						400,
 					),
 				},
 			},
