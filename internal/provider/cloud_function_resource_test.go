@@ -174,6 +174,14 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 									max_request_concurrency = 1
 								}
 							]
+							authorized_parties = [
+								{
+									nca_id = "%s"
+								},
+								{
+									nca_id = "%s"
+								}
+							]
 							tags = ["%s","%s"]
 						}
 						`,
@@ -192,6 +200,8 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestGpuType,
 					testutils.TestTags[0],
 					testutils.TestTags[1],
+					testutils.TestAuthorizedParty1,
+					testutils.TestAuthorizedParty2,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
@@ -225,6 +235,10 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.0.nca_id", testutils.TestAuthorizedParty1),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.1.nca_id", testutils.TestAuthorizedParty2),
 				),
 			},
 			// Verify Function Update Timeout
@@ -349,6 +363,8 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
 			// Verify Function Import
@@ -453,6 +469,8 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
 			// Verify Function Update
@@ -484,6 +502,14 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 									max_request_concurrency = 2
 								}
 							]
+							authorized_parties = [
+								{
+									nca_id = "%s"
+								},
+								{
+									nca_id = "%s"
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -500,6 +526,8 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					testutils.TestBackend,
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
+					testutils.TestAuthorizedParty1,
+					testutils.TestAuthorizedParty2,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify version ID exist
@@ -532,6 +560,10 @@ func TestAccCloudFunctionResource_HelmBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.0.nca_id", testutils.TestAuthorizedParty1),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.1.nca_id", testutils.TestAuthorizedParty2),
 				),
 			},
 			// Verify Function Import
@@ -617,6 +649,14 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 									EOF
 								}
 							]
+							authorized_parties = [
+								{
+									nca_id = "%s"
+								},
+								{
+									nca_id = "%s"
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -637,6 +677,8 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					testutils.TestSecretNames[0],
 					testutils.TestSecretNames[1],
 					testutils.TestSecretNames[2],
+					testutils.TestAuthorizedParty1,
+					testutils.TestAuthorizedParty2,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
@@ -677,6 +719,10 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.0.nca_id", testutils.TestAuthorizedParty1),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.1.nca_id", testutils.TestAuthorizedParty2),
 				),
 			},
 			// Verify Function Update
@@ -800,6 +846,8 @@ func TestAccCloudFunctionResource_ContainerBasedFunction(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
 			// Verify Function Import
@@ -900,6 +948,8 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
 			// Verify Function Update
@@ -929,6 +979,14 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 									max_request_concurrency = 2
 								}
 							]
+							authorized_parties = [
+								{
+									nca_id = "%s"
+								},
+								{
+									nca_id = "%s"
+								}
+							]
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -943,6 +1001,8 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					testutils.TestBackend,
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
+					testutils.TestAuthorizedParty1,
+					testutils.TestAuthorizedParty2,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
@@ -975,6 +1035,10 @@ func TestAccCloudFunctionResource_ContainerBasedFunctionVersion(t *testing.T) {
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.0.nca_id", testutils.TestAuthorizedParty1),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.1.nca_id", testutils.TestAuthorizedParty2),
 				),
 			},
 			// Verify Function Import
