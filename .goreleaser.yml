@@ -71,6 +71,9 @@ signs:
       - --result_filename
       - ${signature}
 release:
+  github:
+    owner: NVIDIA
+    name: terraform-provider-ngc
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
