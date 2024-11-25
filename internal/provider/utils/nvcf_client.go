@@ -51,6 +51,12 @@ type RequestStatusModel struct {
 
 type ErrorResponse struct {
 	RequestStatus RequestStatusModel `json:"requestStatus"`
+	// There are two format error response in NVCF endpoint.
+	Type     string `json:"type"`
+	Title    string `json:"title"`
+	Status   int    `json:"status"`
+	Detail   string `json:"detail"`
+	Instance string `json:"instance"`
 }
 
 func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any, expectedStatusCode map[int]bool) error {
@@ -105,7 +111,12 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 			tflog.Error(ctx, "failed to parse error response body")
 			return fmt.Errorf("failed to parse error response body. Response body: %s", string(body))
 		}
-		return errors.New(errResponseObject.RequestStatus.StatusDescription)
+
+		if errResponseObject.RequestStatus.StatusDescription != "" {
+			return errors.New(errResponseObject.RequestStatus.StatusDescription)
+		} else {
+			return errors.New(errResponseObject.Detail)
+		}
 	}
 
 	if responseObject != nil {

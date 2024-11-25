@@ -71,7 +71,9 @@ signs:
       - --result_filename
       - ${signature}
 release:
-  disable: true # We publish to artifactory.
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
 changelog:
   disable: true
 artifactories:
