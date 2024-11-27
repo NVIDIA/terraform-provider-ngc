@@ -411,3 +411,13 @@ func (c *NVCFClient) UnAuthorizeAllExtraAccountsToInvokeFunction(ctx context.Con
 	tflog.Debug(ctx, "Unauthorize All Extra Accounts To Invoke Function")
 	return &authorizeAccountsToInvokeFunctionResponse, err
 }
+
+func (c *NVCFClient) GetFunctionAuthorization(ctx context.Context, functionID string, functionVersionID string) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
+	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/authorizations/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &authorizeAccountsToInvokeFunctionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Get Function Authorization")
+	return &authorizeAccountsToInvokeFunctionResponse, err
+}
