@@ -73,6 +73,11 @@ func (m *NvidiaCloudFunctionResourceHealthModel) attrTypes() map[string]attr.Typ
 	}
 }
 
+type NvidiaCloudFunctionResourceAuthorizedPartyModel struct {
+	ClietnID types.String `tfsdk:"client_id"`
+	NcaID    types.String `tfsdk:"nca_id"`
+}
+
 type NvidiaCloudFunctionResourceSecretModel struct {
 	Name  types.String `tfsdk:"name"`
 	Value types.String `tfsdk:"value"`
@@ -125,18 +130,17 @@ type NvidiaCloudFunctionResourceModel struct {
 	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
 	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
 	Secrets                  types.Set      `tfsdk:"secrets"`
+	AuthorizedParties        types.Set      `tfsdk:"authorized_parties"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBaseOnResponse(
 	ctx context.Context, diag *diag.Diagnostics,
-	userProvideFunctionID types.String,
 	data *NvidiaCloudFunctionResourceModel,
 	functionInfo *utils.NvidiaCloudFunctionInfo,
 	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
+
 	data.Id = types.StringValue(functionInfo.ID)
 	data.VersionID = types.StringValue(functionInfo.VersionID)
-	data.FunctionID = userProvideFunctionID
-
 	data.InferencePort = types.Int64Value(int64(functionInfo.InferencePort))
 
 	if data.KeepFailedResource.IsNull() || data.KeepFailedResource.IsUnknown() {
@@ -281,7 +285,7 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 	// We don't update Secret from response, since the secret won't return in response.
 }
 
-func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, client utils.NVCFClient, function utils.NvidiaCloudFunctionInfo) (utils.NvidiaCloudFunctionDeployment, bool) {
+func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, client utils.NVCFClient, function utils.NvidiaCloudFunctionInfo) utils.NvidiaCloudFunctionDeployment {
 	var functionDeployment utils.NvidiaCloudFunctionDeployment
 
 	if !data.DeploymentSpecifications.IsNull() && len(data.DeploymentSpecifications.Elements()) > 0 {
@@ -289,7 +293,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 		diag.Append(data.DeploymentSpecifications.ElementsAs(ctx, &deploymentSpecifications, false)...)
 
 		if diag.HasError() {
-			return utils.NvidiaCloudFunctionDeployment{}, true
+			return utils.NvidiaCloudFunctionDeployment{}
 		}
 
 		deploymentSpecificationsOption := make([]utils.NvidiaCloudFunctionDeploymentSpecification, 0)
@@ -303,10 +307,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 						"Failed to create Cloud Function Deployment",
 						err.Error(),
 					)
-				}
-
-				if diag.HasError() {
-					return utils.NvidiaCloudFunctionDeployment{}, true
+					return utils.NvidiaCloudFunctionDeployment{}
 				}
 			}
 
@@ -334,10 +335,7 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 				"Failed to create Cloud Function Deployment",
 				err.Error(),
 			)
-		}
-
-		if diag.HasError() {
-			return utils.NvidiaCloudFunctionDeployment{}, true
+			return utils.NvidiaCloudFunctionDeployment{}
 		}
 
 		err = client.WaitingDeploymentCompleted(ctx, function.ID, function.VersionID)
@@ -347,15 +345,55 @@ func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel
 				"Failed to create Cloud Function Deployment",
 				err.Error(),
 			)
-		}
-
-		if diag.HasError() {
-			return utils.NvidiaCloudFunctionDeployment{}, true
+			return utils.NvidiaCloudFunctionDeployment{}
 		}
 
 		functionDeployment = createNvidiaCloudFunctionDeploymentResponse.Deployment
 	}
-	return functionDeployment, false
+	return functionDeployment
+}
+
+func authorizeAccountToInvokeFunction(
+	ctx context.Context,
+	functionID string,
+	versionID string,
+	authorizePartiesRawData basetypes.SetValue,
+	diag *diag.Diagnostics,
+	client utils.NVCFClient,
+) utils.AuthorizeAccountsToInvokeFunctionResponse {
+	if !authorizePartiesRawData.IsNull() && len(authorizePartiesRawData.Elements()) > 0 {
+		authorizePartiesInTerraformModel := make([]NvidiaCloudFunctionResourceAuthorizedPartyModel, 0, len(authorizePartiesRawData.Elements()))
+		diag.Append(authorizePartiesRawData.ElementsAs(ctx, &authorizePartiesInTerraformModel, false)...)
+
+		if diag.HasError() {
+			return utils.AuthorizeAccountsToInvokeFunctionResponse{}
+		}
+
+		authorizeParties := make([]utils.AuthorizedParty, 0)
+
+		for _, v := range authorizePartiesInTerraformModel {
+			authorizeParties = append(authorizeParties, utils.AuthorizedParty{
+				ClientId: v.ClietnID.ValueString(),
+				NcaID:    v.NcaID.ValueString(),
+			})
+		}
+		var authorizeAccountsToInvokeFunctionResponse, err = client.AuthorizeAccountsToInvokeFunction(
+			ctx, functionID, versionID,
+			utils.AuthorizeAccountsToInvokeFunctionRequest{
+				AuthorizedParties: authorizeParties,
+			},
+		)
+
+		if err != nil {
+			diag.AddError(
+				"Failed to authorize additional accounts to invoke function",
+				err.Error(),
+			)
+			return utils.AuthorizeAccountsToInvokeFunctionResponse{}
+		}
+		return *authorizeAccountsToInvokeFunctionResponse
+	}
+	return utils.AuthorizeAccountsToInvokeFunctionResponse{}
 }
 
 func deploymentSpecificationsSchema() schema.SetNestedAttribute {
@@ -510,6 +548,25 @@ func secretsSchema() schema.SetNestedAttribute {
 	}
 }
 
+func authorizedPartiesSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"client_id": schema.StringAttribute{
+					MarkdownDescription: "Client Id -- 'sub' claim in the JWT. This field should not be specified anymore.",
+					Optional:            true,
+				},
+				"nca_id": schema.StringAttribute{
+					MarkdownDescription: "NVIDIA Cloud Account authorized to invoke the function",
+					Required:            true,
+				},
+			},
+		},
+		MarkdownDescription: "Associated authorized parties for a specific version of a function",
+		Optional:            true,
+	}
+}
+
 func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
@@ -610,6 +667,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
 			"secrets":                   secretsSchema(),
+			"authorized_parties":        authorizedPartiesSchema(),
 			"keep_failed_resource": schema.BoolAttribute{
 				MarkdownDescription: "Don't delete failed resource. Default is \"false\"",
 				Optional:            true,
@@ -829,16 +887,18 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 
 	function := createNvidiaCloudFunctionResponse.Function
 
-	if len(data.DeploymentSpecifications.Elements()) == 0 {
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, nil)
-	} else {
-		functionDeployment, hasError := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
+	authorizeAccountToInvokeFunction(ctx, function.ID, function.VersionID, data.AuthorizedParties, &resp.Diagnostics, *r.client)
 
-		if hasError {
+	if len(data.DeploymentSpecifications.Elements()) == 0 {
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &function, nil)
+	} else {
+		functionDeployment := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
+
+		if resp.Diagnostics.HasError() {
 			r.deleteFailedDeploymentVersion(ctx, data.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &function, &functionDeployment)
 	}
 
 	// Save data into Terraform state
@@ -918,7 +978,7 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, data.FunctionID, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
+	r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -970,6 +1030,11 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 
 	function := createNvidiaCloudFunctionResponse.Function
 
+	// We don't need to clean up the old function authorizeParties since we will create new functions to replace old one every time.
+	// However if we want to support update without function recreation, we need to handle the case for remove all authorized accounts
+	// (i.e, the AuthorizedParties become empty)
+	authorizeAccountToInvokeFunction(ctx, function.ID, function.VersionID, plan.AuthorizedParties, &resp.Diagnostics, *r.client)
+
 	if len(plan.DeploymentSpecifications.Elements()) == 0 {
 		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
@@ -979,11 +1044,11 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, nil)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, &function, nil)
 	} else {
-		functionDeployment, hasError := createDeployment(ctx, plan, &resp.Diagnostics, *r.client, function)
+		functionDeployment := createDeployment(ctx, plan, &resp.Diagnostics, *r.client, function)
 
-		if hasError {
+		if resp.Diagnostics.HasError() {
 			r.deleteFailedDeploymentVersion(ctx, plan.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
@@ -996,7 +1061,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, plan.FunctionID, &plan, &function, &functionDeployment)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, &function, &functionDeployment)
 	}
 
 	// Save updated data into Terraform state

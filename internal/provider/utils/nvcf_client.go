@@ -371,3 +371,53 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	tflog.Debug(ctx, "Delete Function Deployment")
 	return &deleteNvidiaCloudFunctionDeploymentResponse, err
 }
+
+type AuthorizedParty struct {
+	ClientId string `json:"clientId,omitempty"`
+	NcaID    string `json:"ncaId"`
+}
+
+type AuthorizeAccountsToInvokeFunctionRequest struct {
+	AuthorizedParties []AuthorizedParty `json:"authorizedParties"`
+}
+
+type AuthorizeAccountsToInvokeFunctionResponseFunctionInfo struct {
+	Id                string            `json:"id"`
+	NcaID             string            `json:"ncaId"`
+	VersionID         string            `json:"versionId"`
+	AuthorizedParties []AuthorizedParty `json:"authorizedParties"`
+}
+
+type AuthorizeAccountsToInvokeFunctionResponse struct {
+	Function AuthorizeAccountsToInvokeFunctionResponseFunctionInfo `json:"function"`
+}
+
+func (c *NVCFClient) AuthorizeAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string, req AuthorizeAccountsToInvokeFunctionRequest) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
+	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/authorizations/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &authorizeAccountsToInvokeFunctionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Authorize Accounts To Invoke Function")
+	return &authorizeAccountsToInvokeFunctionResponse, err
+}
+
+func (c *NVCFClient) UnAuthorizeAllExtraAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
+	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/authorizations/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &authorizeAccountsToInvokeFunctionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Unauthorize All Extra Accounts To Invoke Function")
+	return &authorizeAccountsToInvokeFunctionResponse, err
+}
+
+func (c *NVCFClient) GetFunctionAuthorization(ctx context.Context, functionID string, functionVersionID string) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
+	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/authorizations/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &authorizeAccountsToInvokeFunctionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Get Function Authorization")
+	return &authorizeAccountsToInvokeFunctionResponse, err
+}
