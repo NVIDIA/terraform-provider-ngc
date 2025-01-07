@@ -699,7 +699,7 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 				if err != nil {
 					request.Secrets = append(request.Secrets, utils.NvidiaCloudFunctionSecret{
 						Name:  v.Name.ValueString(),
-						Value: v.Name.ValueString(),
+						Value: v.Value.ValueString(),
 					})
 				} else {
 					request.Secrets = append(request.Secrets, utils.NvidiaCloudFunctionSecret{
