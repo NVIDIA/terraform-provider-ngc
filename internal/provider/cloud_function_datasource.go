@@ -56,13 +56,16 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	Models                   types.Set                               `tfsdk:"models"`
 	Resources                types.Set                               `tfsdk:"resources"`
 	FunctionType             types.String                            `tfsdk:"function_type"`
+	AuthorizedParties        types.Set                               `tfsdk:"authorized_parties"`
 }
 
 func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel(
 	ctx context.Context, diag *diag.Diagnostics,
 	data *NvidiaCloudFunctionDataSourceModel,
 	functionInfo *utils.NvidiaCloudFunctionInfo,
-	functionDeployment *utils.NvidiaCloudFunctionDeployment) {
+	functionDeployment *utils.NvidiaCloudFunctionDeployment,
+	functionAuthorizedParties []utils.AuthorizedParty,
+) {
 	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.FunctionName = types.StringValue(functionInfo.Name)
 	data.FunctionID = types.StringValue(functionInfo.ID)
@@ -189,9 +192,23 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 			}
 			models = append(models, model)
 		}
-		modelsSetType, modelsSetTypeDiag := types.SetValueFrom(ctx, resourcesSchema().NestedObject.Type(), models)
+		modelsSetType, modelsSetTypeDiag := types.SetValueFrom(ctx, modelsSchema().NestedObject.Type(), models)
 		diag.Append(modelsSetTypeDiag...)
 		data.Models = modelsSetType
+	}
+
+	if len(functionAuthorizedParties) > 0 {
+		parties := make([]NvidiaCloudFunctionResourceAuthorizedPartyModel, 0)
+		for _, v := range functionAuthorizedParties {
+			party := NvidiaCloudFunctionResourceAuthorizedPartyModel{
+				ClietnID: types.StringValue(v.ClientId),
+				NcaID:    types.StringValue(v.NcaID),
+			}
+			parties = append(parties, party)
+		}
+		partiesSetType, partiesSetTypeDiag := types.SetValueFrom(ctx, authorizedPartiesSchema().NestedObject.Type(), parties)
+		diag.Append(partiesSetTypeDiag...)
+		data.AuthorizedParties = partiesSetType
 	}
 }
 
@@ -252,9 +269,10 @@ func (d *NvidiaCloudFunctionDataSource) Schema(ctx context.Context, req datasour
 				Computed:            true,
 				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
 			},
-			"health":    healthSchema(),
-			"models":    modelsSchema(),
-			"resources": resourcesSchema(),
+			"health":             healthSchema(),
+			"models":             modelsSchema(),
+			"resources":          resourcesSchema(),
+			"authorized_parties": authorizedPartiesSchema(),
 			"tags": schema.SetAttribute{
 				MarkdownDescription: "Tags of the function.",
 				ElementType:         types.StringType,
@@ -317,6 +335,7 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 			"Failed to read Cloud Function versions",
 			"Got unexpected result when reading Cloud Function",
 		)
+		return
 	}
 
 	versionNotFound := true
@@ -332,9 +351,6 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 
 	if versionNotFound {
 		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionID.ValueString()))
-	}
-
-	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -347,10 +363,22 @@ func (d *NvidiaCloudFunctionDataSource) Read(ctx context.Context, req datasource
 				"Failed to read Cloud Function deployment",
 				err.Error(),
 			)
+			return
 		}
 	}
 
-	d.updateNvidiaCloudFunctionDataSourceModel(ctx, &resp.Diagnostics, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment)
+	getFunctionAuthorizationResponse, err := d.client.GetFunctionAuthorization(ctx, data.FunctionID.ValueString(), data.VersionID.ValueString())
+
+	if err != nil {
+		// FIXME: extract error messsage to constants.
+		resp.Diagnostics.AddError(
+			"Failed to read Cloud Function authorized parties",
+			err.Error(),
+		)
+		return
+	}
+
+	d.updateNvidiaCloudFunctionDataSourceModel(ctx, &resp.Diagnostics, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment, getFunctionAuthorizationResponse.Function.AuthorizedParties)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
