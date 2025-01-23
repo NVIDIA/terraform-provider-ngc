@@ -23,6 +23,7 @@ Nvidia Cloud Function Data Source
 ### Optional
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
+- `authorized_parties` (Attributes Set) Associated authorized parties for a specific version of a function (see [below for nested schema](#nestedatt--authorized_parties))
 - `container_args` (String) Args to be passed when launching the container
 - `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
@@ -43,6 +44,14 @@ Nvidia Cloud Function Data Source
 ### Read-Only
 
 - `nca_id` (String) NCA ID
+
+<a id="nestedatt--authorized_parties"></a>
+### Nested Schema for `authorized_parties`
+
+Required:
+
+- `nca_id` (String) NVIDIA Cloud Account authorized to invoke the function
+
 
 <a id="nestedatt--container_environment"></a>
 ### Nested Schema for `container_environment`

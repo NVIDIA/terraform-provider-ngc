@@ -56,10 +56,6 @@ Required:
 
 - `nca_id` (String) NVIDIA Cloud Account authorized to invoke the function
 
-Optional:
-
-- `client_id` (String) Client Id -- 'sub' claim in the JWT. This field should not be specified anymore.
-
 
 <a id="nestedatt--container_environment"></a>
 ### Nested Schema for `container_environment`
