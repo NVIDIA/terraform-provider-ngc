@@ -201,8 +201,7 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		parties := make([]NvidiaCloudFunctionResourceAuthorizedPartyModel, 0)
 		for _, v := range functionAuthorizedParties {
 			party := NvidiaCloudFunctionResourceAuthorizedPartyModel{
-				ClietnID: types.StringValue(v.ClientId),
-				NcaID:    types.StringValue(v.NcaID),
+				NcaID: types.StringValue(v.NcaID),
 			}
 			parties = append(parties, party)
 		}

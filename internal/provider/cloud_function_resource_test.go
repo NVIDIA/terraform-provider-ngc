@@ -144,7 +144,7 @@ func TestAccCloudFunctionResource_HelmBasedFunction(t *testing.T) {
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 				),
-				ExpectError: regexp.MustCompile("Validation failed"),
+				ExpectError: regexp.MustCompile("Validation failure"),
 			},
 			// Verify Function Creation
 			{
