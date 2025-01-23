@@ -139,7 +139,6 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 	functionDeployment *utils.NvidiaCloudFunctionDeployment,
 	authorizedAccounts *utils.AuthorizeAccountsToInvokeFunctionResponse,
 ) {
-
 	data.Id = types.StringValue(functionInfo.ID)
 	data.VersionID = types.StringValue(functionInfo.VersionID)
 	data.InferencePort = types.Int64Value(int64(functionInfo.InferencePort))
