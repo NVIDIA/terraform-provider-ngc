@@ -20,6 +20,12 @@ include:
 
 workflow:
   rules:
+    # run on for Github source
+    - if: $CI_PIPELINE_SOURCE == "external"
+    # run on for Github source
+    - if: $CI_PIPELINE_SOURCE == "external_pull_request_event"
+    # run on for Github source
+    - if: $CI_PIPELINE_SOURCE == "push"
     # Overwrite to unblock other CI jobs
     # ref: https://gitlab-master.nvidia.com/omniverse/farm/devops/ci/gitlab/git/-/blob/main/modules/v2/version/_common.yml
     # run on each merge request
