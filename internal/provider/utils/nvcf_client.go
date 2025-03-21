@@ -260,6 +260,20 @@ func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functi
 	return &listNvidiaCloudFunctionVersionsResponse, err
 }
 
+type GetNvidiaCloudFunctionVersionResponse struct {
+	Function NvidiaCloudFunctionInfo `json:"function"`
+}
+
+func (c *NVCFClient) GetNvidiaCloudFunctionVersion(ctx context.Context, functionID string, functionVersionID string) (resp *GetNvidiaCloudFunctionVersionResponse, err error) {
+	var getNvidiaCloudFunctionVersionResponse GetNvidiaCloudFunctionVersionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &getNvidiaCloudFunctionVersionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Get NVCF Function version")
+	return &getNvidiaCloudFunctionVersionResponse, err
+}
+
 func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, functionID string, functionVersionID string) (err error) {
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions/" + functionVersionID
 
