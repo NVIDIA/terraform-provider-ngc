@@ -32,7 +32,7 @@ func TestAccCloudFunctionDataSource_HelmBasedFunction(t *testing.T) {
 
 	testutils.CreateDeployment(t, functionInfo.Function.ID, functionInfo.Function.VersionID, testutils.TestHelmValueOverWrite)
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -78,7 +78,7 @@ func TestAccCloudFunctionDataSource_ContainerBasedFunction(t *testing.T) {
 
 	testutils.CreateDeployment(t, functionInfo.Function.ID, functionInfo.Function.VersionID, "")
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
