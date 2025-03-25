@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
@@ -130,9 +131,9 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
-		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.SetValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
-		diag.Append(deploymentSpecificationsSetTypeDiag...)
-		data.DeploymentSpecifications = deploymentSpecificationsSetType
+		deploymentSpecificationsListType, deploymentSpecificationsListTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
+		diag.Append(deploymentSpecificationsListTypeDiag...)
+		data.DeploymentSpecifications = deploymentSpecificationsListType
 	}
 
 	if functionInfo.Tags != nil {
@@ -310,8 +311,8 @@ func updateFunctionAuthorizedParties(
 	}
 }
 
-func deploymentSpecificationsSchema() schema.SetNestedAttribute {
-	return schema.SetNestedAttribute{
+func deploymentSpecificationsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"configuration": schema.StringAttribute{
@@ -357,8 +358,8 @@ func deploymentSpecificationsSchema() schema.SetNestedAttribute {
 			},
 		},
 		Optional: true,
-		PlanModifiers: []planmodifier.Set{
-			setplanmodifier.UseStateForUnknown(),
+		PlanModifiers: []planmodifier.List{
+			listplanmodifier.UseStateForUnknown(),
 		},
 	}
 }
