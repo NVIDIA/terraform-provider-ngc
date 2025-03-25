@@ -47,7 +47,7 @@ default:
     - generic
 
 # Only for CI Build, not for production run time usage
-image: golang:1.22.5
+image: golang:1.23.0
 
 stages:
   - test
