@@ -41,6 +41,7 @@ var TestHelmServicePort int
 var TestHelmInferenceUrl string
 var TestHelmHealthUri string
 var TestHelmValueOverWrite string
+var TestHelmValueOverWriteUpdated string
 var TestHelmAPIFormat string
 
 var TestContainerFunctionName string
@@ -93,6 +94,7 @@ func init() {
 	TestHelmInferenceUrl = os.Getenv("HELM_INFERENCE_URL")
 	TestHelmHealthUri = os.Getenv("HELM_HEALTH_URI")
 	TestHelmValueOverWrite = os.Getenv("HELM_VALUE_YAML_OVERWRITE")
+	TestHelmValueOverWriteUpdated = os.Getenv("HELM_VALUE_YAML_OVERWRITE_UPDATE")
 	TestHelmAPIFormat = "CUSTOM"
 
 	// Container-Base Function

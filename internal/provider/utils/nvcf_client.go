@@ -43,22 +43,6 @@ func (c *NVCFClient) HTTPClient(context.Context) *http.Client {
 	return c.HttpClient
 }
 
-type RequestStatusModel struct {
-	StatusCode        string `json:"statusCode"`
-	StatusDescription string `json:"statusDescription"`
-	RequestID         string `json:"requestId"`
-}
-
-type ErrorResponse struct {
-	RequestStatus RequestStatusModel `json:"requestStatus"`
-	// There are two format error response in NVCF endpoint.
-	Type     string `json:"type"`
-	Title    string `json:"title"`
-	Status   int    `json:"status"`
-	Detail   string `json:"detail"`
-	Instance string `json:"instance"`
-}
-
 func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method string, requestBody any, responseObject any, expectedStatusCode map[int]bool) error {
 	var request *http.Request
 
@@ -131,102 +115,7 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	return err
 }
 
-type NvidiaCloudFunctionSecret struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
-}
-
-type NvidiaCloudFunctionModel struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	URI     string `json:"uri"`
-}
-
-type NvidiaCloudFunctionContainerEnvironment struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type NvidiaCloudFunctionHealth struct {
-	Protocol           string `json:"protocol,omitempty"`
-	URI                string `json:"uri,omitempty"`
-	Port               int    `json:"port,omitempty"`
-	Timeout            string `json:"timeout,omitempty"`
-	ExpectedStatusCode int    `json:"expectedStatusCode,omitempty"`
-}
-
-type NvidiaCloudFunctionActiveInstance struct {
-	InstanceID        string    `json:"instanceId"`
-	FunctionID        string    `json:"functionId"`
-	FunctionVersionID string    `json:"functionVersionId"`
-	InstanceType      string    `json:"instanceType"`
-	InstanceStatus    string    `json:"instanceStatus"`
-	SisRequestID      string    `json:"sisRequestId"`
-	NcaID             string    `json:"ncaId"`
-	Gpu               string    `json:"gpu"`
-	Backend           string    `json:"backend"`
-	Location          string    `json:"location"`
-	InstanceCreatedAt time.Time `json:"instanceCreatedAt"`
-	InstanceUpdatedAt time.Time `json:"instanceUpdatedAt"`
-}
-
-type NvidiaCloudFunctionResource struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	URI     string `json:"uri"`
-}
-
-type NvidiaCloudFunctionInfo struct {
-	ID                      string                                    `json:"id"`
-	NcaID                   string                                    `json:"ncaId"`
-	VersionID               string                                    `json:"versionId"`
-	Name                    string                                    `json:"name"`
-	Status                  string                                    `json:"status"`
-	InferenceURL            string                                    `json:"inferenceUrl"`
-	OwnedByDifferentAccount bool                                      `json:"ownedByDifferentAccount"`
-	InferencePort           int                                       `json:"inferencePort"`
-	ContainerImage          string                                    `json:"containerImage"`
-	ContainerEnvironment    []NvidiaCloudFunctionContainerEnvironment `json:"containerEnvironment"`
-	Models                  []NvidiaCloudFunctionModel                `json:"models"`
-	ContainerArgs           string                                    `json:"containerArgs"`
-	APIBodyFormat           string                                    `json:"apiBodyFormat"`
-	HelmChart               string                                    `json:"helmChart"`
-	HelmChartServiceName    string                                    `json:"helmChartServiceName"`
-	HealthURI               string                                    `json:"healthUri"`
-	CreatedAt               time.Time                                 `json:"createdAt"`
-	Description             string                                    `json:"description"`
-	Health                  *NvidiaCloudFunctionHealth                `json:"health"`
-	ActiveInstances         []NvidiaCloudFunctionActiveInstance       `json:"activeInstances"`
-	Resources               []NvidiaCloudFunctionResource             `json:"resources"`
-	Secrets                 []string                                  `json:"secrets"`
-	Tags                    []string                                  `json:"tags"`
-	FunctionType            string                                    `json:"functionType"`
-}
-
-type CreateNvidiaCloudFunctionRequest struct {
-	FunctionName         string                                    `json:"name"`
-	HelmChart            string                                    `json:"helmChart,omitempty"`
-	HelmChartServiceName string                                    `json:"helmChartServiceName,omitempty"`
-	InferenceUrl         string                                    `json:"inferenceUrl"`
-	HealthUri            string                                    `json:"healthUri,omitempty"`
-	InferencePort        int                                       `json:"inferencePort"`
-	ContainerImage       string                                    `json:"containerImage,omitempty"`
-	ContainerEnvironment []NvidiaCloudFunctionContainerEnvironment `json:"containerEnvironment,omitempty"`
-	Models               []NvidiaCloudFunctionModel                `json:"models,omitempty"`
-	ContainerArgs        string                                    `json:"containerArgs,omitempty"`
-	APIBodyFormat        string                                    `json:"apiBodyFormat"`
-	Description          string                                    `json:"description,omitempty"`
-	Health               *NvidiaCloudFunctionHealth                `json:"health,omitempty"`
-	Resources            []NvidiaCloudFunctionResource             `json:"resources,omitempty"`
-	Secrets              []NvidiaCloudFunctionSecret               `json:"secrets,omitempty"`
-	Tags                 []string                                  `json:"tags,omitempty"`
-	FunctionType         string                                    `json:"functionType"`
-}
-
-type CreateNvidiaCloudFunctionResponse struct {
-	Function NvidiaCloudFunctionInfo `json:"function"`
-}
-
+// Function Management
 func (c *NVCFClient) CreateNvidiaCloudFunction(ctx context.Context, functionID string, req CreateNvidiaCloudFunctionRequest) (resp *CreateNvidiaCloudFunctionResponse, err error) {
 	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
 
@@ -242,14 +131,6 @@ func (c *NVCFClient) CreateNvidiaCloudFunction(ctx context.Context, functionID s
 	return &createNvidiaCloudFunctionResponse, err
 }
 
-type ListNvidiaCloudFunctionVersionsResponse struct {
-	Functions []NvidiaCloudFunctionInfo `json:"functions"`
-}
-
-type ListNvidiaCloudFunctionVersionsRequest struct {
-	FunctionID string `json:"name"`
-}
-
 func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functionID string) (resp *ListNvidiaCloudFunctionVersionsResponse, err error) {
 	var listNvidiaCloudFunctionVersionsResponse ListNvidiaCloudFunctionVersionsResponse
 
@@ -260,6 +141,26 @@ func (c *NVCFClient) ListNvidiaCloudFunctionVersions(ctx context.Context, functi
 	return &listNvidiaCloudFunctionVersionsResponse, err
 }
 
+func (c *NVCFClient) UpdateNvidiaCloudFunctionMetadata(ctx context.Context, functionID string, functionVersionID string, req UpdateNvidiaCloudFunctionMetadataRequest) (resp *UpdateNvidiaCloudFunctionMetadataResponse, err error) {
+	var updateNvidiaCloudFunctionMetadataResponse UpdateNvidiaCloudFunctionMetadataResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/metadata/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodPut, req, &updateNvidiaCloudFunctionMetadataResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Update NVCF Function Metadata.")
+	return &updateNvidiaCloudFunctionMetadataResponse, err
+}
+
+func (c *NVCFClient) GetNvidiaCloudFunctionVersion(ctx context.Context, functionID string, functionVersionID string) (resp *GetNvidiaCloudFunctionVersionResponse, err error) {
+	var getNvidiaCloudFunctionVersionResponse GetNvidiaCloudFunctionVersionResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions/" + functionVersionID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &getNvidiaCloudFunctionVersionResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Get NVCF Function version")
+	return &getNvidiaCloudFunctionVersionResponse, err
+}
+
 func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, functionID string, functionVersionID string) (err error) {
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/functions/" + functionID + "/versions/" + functionVersionID
 
@@ -268,33 +169,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, funct
 	return err
 }
 
-type NvidiaCloudFunctionDeploymentSpecification struct {
-	Gpu                   string      `json:"gpu"`
-	Backend               string      `json:"backend"`
-	InstanceType          string      `json:"instanceType"`
-	MaxInstances          int         `json:"maxInstances"`
-	MinInstances          int         `json:"minInstances"`
-	MaxRequestConcurrency int         `json:"maxRequestConcurrency"`
-	Configuration         interface{} `json:"configuration"`
-}
-
-type NvidiaCloudFunctionDeployment struct {
-	FunctionID               string                                       `json:"functionId"`
-	FunctionVersionID        string                                       `json:"functionVersionId"`
-	NcaID                    string                                       `json:"ncaId"`
-	FunctionStatus           string                                       `json:"functionStatus"`
-	HealthInfo               interface{}                                  `json:"healthInfo"`
-	DeploymentSpecifications []NvidiaCloudFunctionDeploymentSpecification `json:"deploymentSpecifications"`
-}
-
-type CreateNvidiaCloudFunctionDeploymentRequest struct {
-	DeploymentSpecifications []NvidiaCloudFunctionDeploymentSpecification `json:"deploymentSpecifications"`
-}
-
-type CreateNvidiaCloudFunctionDeploymentResponse struct {
-	Deployment NvidiaCloudFunctionDeployment `json:"deployment"`
-}
-
+// Function Deployment APIs
 func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string, req CreateNvidiaCloudFunctionDeploymentRequest) (resp *CreateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var createNvidiaCloudFunctionDeploymentResponse CreateNvidiaCloudFunctionDeploymentResponse
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
@@ -302,14 +177,6 @@ func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &createNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true})
 	tflog.Debug(ctx, "Create Function Deployment")
 	return &createNvidiaCloudFunctionDeploymentResponse, err
-}
-
-type UpdateNvidiaCloudFunctionDeploymentRequest struct {
-	DeploymentSpecifications []NvidiaCloudFunctionDeploymentSpecification `json:"deploymentSpecifications"`
-}
-
-type UpdateNvidiaCloudFunctionDeploymentResponse struct {
-	Deployment NvidiaCloudFunctionDeployment `json:"deployment"`
 }
 
 func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string, req UpdateNvidiaCloudFunctionDeploymentRequest) (resp *UpdateNvidiaCloudFunctionDeploymentResponse, err error) {
@@ -345,10 +212,6 @@ func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionID 
 	}
 }
 
-type ReadNvidiaCloudFunctionDeploymentResponse struct {
-	Deployment NvidiaCloudFunctionDeployment `json:"deployment"`
-}
-
 func (c *NVCFClient) ReadNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string) (resp *ReadNvidiaCloudFunctionDeploymentResponse, err error) {
 	var readNvidiaCloudFunctionDeploymentResponse ReadNvidiaCloudFunctionDeploymentResponse
 
@@ -357,10 +220,6 @@ func (c *NVCFClient) ReadNvidiaCloudFunctionDeployment(ctx context.Context, func
 	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &readNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true, 404: true})
 	tflog.Debug(ctx, "Read Function Deployment")
 	return &readNvidiaCloudFunctionDeploymentResponse, err
-}
-
-type DeleteNvidiaCloudFunctionDeploymentResponse struct {
-	Function NvidiaCloudFunctionInfo `json:"function"`
 }
 
 func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string) (resp *DeleteNvidiaCloudFunctionDeploymentResponse, err error) {
@@ -372,26 +231,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	return &deleteNvidiaCloudFunctionDeploymentResponse, err
 }
 
-type AuthorizedParty struct {
-	ClientId string `json:"clientId,omitempty"`
-	NcaID    string `json:"ncaId"`
-}
-
-type AuthorizeAccountsToInvokeFunctionRequest struct {
-	AuthorizedParties []AuthorizedParty `json:"authorizedParties"`
-}
-
-type AuthorizeAccountsToInvokeFunctionResponseFunctionInfo struct {
-	Id                string            `json:"id"`
-	NcaID             string            `json:"ncaId"`
-	VersionID         string            `json:"versionId"`
-	AuthorizedParties []AuthorizedParty `json:"authorizedParties"`
-}
-
-type AuthorizeAccountsToInvokeFunctionResponse struct {
-	Function AuthorizeAccountsToInvokeFunctionResponseFunctionInfo `json:"function"`
-}
-
+// Function Sharing APIs
 func (c *NVCFClient) AuthorizeAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string, req AuthorizeAccountsToInvokeFunctionRequest) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
 	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
 
@@ -402,14 +242,12 @@ func (c *NVCFClient) AuthorizeAccountsToInvokeFunction(ctx context.Context, func
 	return &authorizeAccountsToInvokeFunctionResponse, err
 }
 
-func (c *NVCFClient) UnAuthorizeAllExtraAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
-	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
-
+func (c *NVCFClient) UnAuthorizeAllExtraAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string) (err error) {
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/authorizations/functions/" + functionID + "/versions/" + functionVersionID
 
-	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, &authorizeAccountsToInvokeFunctionResponse, map[int]bool{200: true})
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, nil, map[int]bool{200: true})
 	tflog.Debug(ctx, "Unauthorize All Extra Accounts To Invoke Function")
-	return &authorizeAccountsToInvokeFunctionResponse, err
+	return err
 }
 
 func (c *NVCFClient) GetFunctionAuthorization(ctx context.Context, functionID string, functionVersionID string) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
