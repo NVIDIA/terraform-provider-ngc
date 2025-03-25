@@ -488,18 +488,20 @@ func secretsSchema() schema.SetNestedAttribute {
 }
 
 func authorizedPartiesSchema() schema.SetNestedAttribute {
-	return schema.SetNestedAttribute{
-		Computed: true,
-		Optional: true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"nca_id": schema.StringAttribute{
-					MarkdownDescription: "NVIDIA Cloud Account authorized to invoke the function",
-					Required:            true,
-				},
+	authorizedPartySchema := schema.NestedAttributeObject{
+		Attributes: map[string]schema.Attribute{
+			"nca_id": schema.StringAttribute{
+				MarkdownDescription: "NVIDIA Cloud Account authorized to invoke the function",
+				Required:            true,
 			},
 		},
+	}
+	return schema.SetNestedAttribute{
+		Computed:            true,
+		Optional:            true,
+		NestedObject:        authorizedPartySchema,
 		MarkdownDescription: "Associated authorized parties for a specific version of a function",
+		Default:             setdefault.StaticValue(types.SetValueMust(authorizedPartySchema.Type(), nil)),
 	}
 }
 
