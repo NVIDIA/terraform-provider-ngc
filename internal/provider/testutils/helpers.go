@@ -142,7 +142,7 @@ func CreateHelmFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionResponse {
 	})
 
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Unable to create function: %s", err.Error()))
+		t.Fatalf("Unable to create function: %s", err.Error())
 	}
 
 	return resp
@@ -155,7 +155,7 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 	if configurationRaw != "" {
 		err := json.Unmarshal([]byte(configurationRaw), &configuration)
 		if err != nil {
-			t.Fatalf(fmt.Sprintf("Unable to parse configurationRaw: %s", err.Error()))
+			t.Fatalf("Unable to parse configurationRaw: %s", err.Error())
 		}
 	}
 
@@ -174,7 +174,7 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 	})
 
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Unable to create function deployment: %s", err.Error()))
+		t.Fatalf("Unable to create function deployment: %s", err.Error())
 	}
 
 	return resp
@@ -196,7 +196,7 @@ func CreateContainerFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionRespo
 	})
 
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Unable to create function: %s", err.Error()))
+		t.Fatalf("Unable to create function: %s", err.Error())
 	}
 
 	return resp
@@ -208,7 +208,7 @@ func DeleteFunction(t *testing.T, functionID string, versionID string) {
 	err := TestNVCFClient.DeleteNvidiaCloudFunctionVersion(Ctx, functionID, versionID)
 
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Unable to delete function: %s", err.Error()))
+		t.Fatalf("Unable to delete function: %s", err.Error())
 	}
 }
 
