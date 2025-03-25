@@ -1,6 +1,7 @@
 module gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc
 
-go 1.21
+go 1.23.0
+
 toolchain go1.23.7
 
 require (

@@ -37,9 +37,7 @@ website/vendor
 # Test result
 report.xml
 coverage*.out
+report_acc.xml
 
 # Sonarqube cache
 .scannerwork/
-
-# Test files
-test-config-stg.env

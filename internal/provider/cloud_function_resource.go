@@ -19,14 +19,16 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -48,88 +50,6 @@ func NewNvidiaCloudFunctionResource() resource.Resource {
 // NvidiaCloudFunctionResource defines the resource implementation.
 type NvidiaCloudFunctionResource struct {
 	client *utils.NVCFClient
-}
-
-type NvidiaCloudFunctionResourceContainerEnvironmentModel struct {
-	Key   types.String `tfsdk:"key"`
-	Value types.String `tfsdk:"value"`
-}
-
-type NvidiaCloudFunctionResourceHealthModel struct {
-	Protocol           types.String `tfsdk:"protocol"`
-	Uri                types.String `tfsdk:"uri"`
-	Port               types.Int64  `tfsdk:"port"`
-	Timeout            types.String `tfsdk:"timeout"`
-	ExpectedStatusCode types.Int64  `tfsdk:"expected_status_code"`
-}
-
-func (m *NvidiaCloudFunctionResourceHealthModel) attrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"protocol":             types.StringType,
-		"uri":                  types.StringType,
-		"port":                 types.Int64Type,
-		"timeout":              types.StringType,
-		"expected_status_code": types.Int64Type,
-	}
-}
-
-type NvidiaCloudFunctionResourceAuthorizedPartyModel struct {
-	NcaID types.String `tfsdk:"nca_id"`
-}
-
-type NvidiaCloudFunctionResourceSecretModel struct {
-	Name  types.String `tfsdk:"name"`
-	Value types.String `tfsdk:"value"`
-}
-
-type NvidiaCloudFunctionResourceResourceModel struct {
-	Name    types.String `tfsdk:"name"`
-	Uri     types.String `tfsdk:"uri"`
-	Version types.String `tfsdk:"version"`
-}
-
-type NvidiaCloudFunctionResourceModelModel struct {
-	Name    types.String `tfsdk:"name"`
-	Uri     types.String `tfsdk:"uri"`
-	Version types.String `tfsdk:"version"`
-}
-
-type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
-	GpuType               types.String `tfsdk:"gpu_type"`
-	Backend               types.String `tfsdk:"backend"`
-	MaxInstances          types.Int64  `tfsdk:"max_instances"`
-	MinInstances          types.Int64  `tfsdk:"min_instances"`
-	MaxRequestConcurrency types.Int64  `tfsdk:"max_request_concurrency"`
-	Configuration         types.String `tfsdk:"configuration"`
-	InstanceType          types.String `tfsdk:"instance_type"`
-}
-
-type NvidiaCloudFunctionResourceModel struct {
-	Id                       types.String   `tfsdk:"id"`
-	FunctionID               types.String   `tfsdk:"function_id"`
-	VersionID                types.String   `tfsdk:"version_id"`
-	NcaId                    types.String   `tfsdk:"nca_id"`
-	FunctionName             types.String   `tfsdk:"function_name"`
-	InferencePort            types.Int64    `tfsdk:"inference_port"`
-	HelmChart                types.String   `tfsdk:"helm_chart"`
-	HelmChartServiceName     types.String   `tfsdk:"helm_chart_service_name"`
-	ContainerImage           types.String   `tfsdk:"container_image"`
-	ContainerArgs            types.String   `tfsdk:"container_args"`
-	ContainerEnvironment     types.Set      `tfsdk:"container_environment"`
-	InferenceUrl             types.String   `tfsdk:"inference_url"`
-	HealthUri                types.String   `tfsdk:"health_uri"` // Deprecated
-	Health                   types.Object   `tfsdk:"health"`
-	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.Set      `tfsdk:"deployment_specifications"`
-	Tags                     types.Set      `tfsdk:"tags"`
-	Description              types.String   `tfsdk:"description"`
-	Models                   types.Set      `tfsdk:"models"`
-	Resources                types.Set      `tfsdk:"resources"`
-	FunctionType             types.String   `tfsdk:"function_type"`
-	KeepFailedResource       types.Bool     `tfsdk:"keep_failed_resource"`
-	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
-	Secrets                  types.Set      `tfsdk:"secrets"`
-	AuthorizedParties        types.Set      `tfsdk:"authorized_parties"`
 }
 
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBaseOnResponse(
@@ -215,9 +135,11 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
 
-	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
-	diag.Append(tagsSetFromDiag...)
-	data.Tags = tags
+	if functionInfo.Tags != nil {
+		tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
+		diag.Append(tagsSetFromDiag...)
+		data.Tags = tags
+	}
 
 	if functionInfo.Health != nil {
 		healthObject := &NvidiaCloudFunctionResourceHealthModel{
@@ -299,75 +221,33 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 	// We don't update Secret from response, since the secret won't return in response.
 }
 
-func createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, client utils.NVCFClient, function utils.NvidiaCloudFunctionInfo) utils.NvidiaCloudFunctionDeployment {
-	var functionDeployment utils.NvidiaCloudFunctionDeployment
+func updateTags(
+	ctx context.Context,
+	functionID string,
+	versionID string,
+	tagsRawData basetypes.SetValue,
+	diag *diag.Diagnostics,
+	client utils.NVCFClient,
+) {
+	tags := make([]string, 0, len(tagsRawData.Elements()))
+	diag.Append(tagsRawData.ElementsAs(ctx, &tags, false)...)
 
-	if !data.DeploymentSpecifications.IsNull() && len(data.DeploymentSpecifications.Elements()) > 0 {
-		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0, len(data.DeploymentSpecifications.Elements()))
-		diag.Append(data.DeploymentSpecifications.ElementsAs(ctx, &deploymentSpecifications, false)...)
-
-		if diag.HasError() {
-			return utils.NvidiaCloudFunctionDeployment{}
-		}
-
-		deploymentSpecificationsOption := make([]utils.NvidiaCloudFunctionDeploymentSpecification, 0)
-		for _, v := range deploymentSpecifications {
-			var configuration interface{}
-			if v.Configuration.ValueString() != "" {
-				err := json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
-
-				if err != nil {
-					diag.AddError(
-						"Failed to create Cloud Function Deployment",
-						err.Error(),
-					)
-					return utils.NvidiaCloudFunctionDeployment{}
-				}
-			}
-
-			d := utils.NvidiaCloudFunctionDeploymentSpecification{
-				Backend:               v.Backend.ValueString(),
-				InstanceType:          v.InstanceType.ValueString(),
-				Gpu:                   v.GpuType.ValueString(),
-				MaxInstances:          int(v.MaxInstances.ValueInt64()),
-				MinInstances:          int(v.MinInstances.ValueInt64()),
-				MaxRequestConcurrency: int(v.MaxRequestConcurrency.ValueInt64()),
-				Configuration:         configuration,
-			}
-			deploymentSpecificationsOption = append(deploymentSpecificationsOption, d)
-		}
-
-		var createNvidiaCloudFunctionDeploymentResponse, err = client.CreateNvidiaCloudFunctionDeployment(
-			ctx, function.ID, function.VersionID,
-			utils.CreateNvidiaCloudFunctionDeploymentRequest{
-				DeploymentSpecifications: deploymentSpecificationsOption,
-			},
-		)
-
-		if err != nil {
-			diag.AddError(
-				"Failed to create Cloud Function Deployment",
-				err.Error(),
-			)
-			return utils.NvidiaCloudFunctionDeployment{}
-		}
-
-		err = client.WaitingDeploymentCompleted(ctx, function.ID, function.VersionID)
-
-		if err != nil {
-			diag.AddError(
-				"Failed to create Cloud Function Deployment",
-				err.Error(),
-			)
-			return utils.NvidiaCloudFunctionDeployment{}
-		}
-
-		functionDeployment = createNvidiaCloudFunctionDeploymentResponse.Deployment
+	if diag.HasError() {
+		return
 	}
-	return functionDeployment
+
+	_, err := client.UpdateNvidiaCloudFunctionMetadata(ctx, functionID, versionID, utils.UpdateNvidiaCloudFunctionMetadataRequest{
+		Tags: tags,
+	})
+	if err != nil {
+		diag.AddError(
+			"Failed to update function tags",
+			err.Error(),
+		)
+	}
 }
 
-func authorizeAccountToInvokeFunction(
+func updateFunctionAuthorizedParties(
 	ctx context.Context,
 	functionID string,
 	versionID string,
@@ -405,8 +285,29 @@ func authorizeAccountToInvokeFunction(
 			return utils.AuthorizeAccountsToInvokeFunctionResponse{}
 		}
 		return *authorizeAccountsToInvokeFunctionResponse
+	} else {
+		getFunctionAuthorizedPartiesResponse, err := client.GetFunctionAuthorization(ctx, functionID, versionID)
+
+		if err != nil {
+			diag.AddError(
+				"Failed to list authorized parties",
+				err.Error(),
+			)
+			return utils.AuthorizeAccountsToInvokeFunctionResponse{}
+		}
+		if len(getFunctionAuthorizedPartiesResponse.Function.AuthorizedParties) > 0 {
+			err = client.UnAuthorizeAllExtraAccountsToInvokeFunction(
+				ctx, functionID, versionID,
+			)
+			if err != nil {
+				diag.AddError(
+					"Failed to unauthorize additional accounts to invoke function",
+					err.Error(),
+				)
+			}
+		}
+		return utils.AuthorizeAccountsToInvokeFunctionResponse{}
 	}
-	return utils.AuthorizeAccountsToInvokeFunctionResponse{}
 }
 
 func deploymentSpecificationsSchema() schema.SetNestedAttribute {
@@ -416,18 +317,30 @@ func deploymentSpecificationsSchema() schema.SetNestedAttribute {
 				"configuration": schema.StringAttribute{
 					MarkdownDescription: "Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions",
 					Optional:            true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"backend": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend.",
 					Optional:            true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"instance_type": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend Instance Type.",
 					Required:            true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"gpu_type": schema.StringAttribute{
 					MarkdownDescription: "GPU Type, GFN backend default is L40",
 					Required:            true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"max_instances": schema.Int64Attribute{
 					MarkdownDescription: "Max Instances Count",
@@ -444,6 +357,9 @@ func deploymentSpecificationsSchema() schema.SetNestedAttribute {
 			},
 		},
 		Optional: true,
+		PlanModifiers: []planmodifier.Set{
+			setplanmodifier.UseStateForUnknown(),
+		},
 	}
 }
 
@@ -466,6 +382,9 @@ func resourcesSchema() schema.SetNestedAttribute {
 			},
 		},
 		Optional: true,
+		PlanModifiers: []planmodifier.Set{
+			setplanmodifier.RequiresReplace(),
+		},
 	}
 }
 
@@ -488,6 +407,9 @@ func modelsSchema() schema.SetNestedAttribute {
 			},
 		},
 		Optional: true,
+		PlanModifiers: []planmodifier.Set{
+			setplanmodifier.RequiresReplace(),
+		},
 	}
 }
 
@@ -506,6 +428,9 @@ func containerEnvironmentsSchema() schema.SetNestedAttribute {
 			},
 		},
 		Optional: true,
+		PlanModifiers: []planmodifier.Set{
+			setplanmodifier.RequiresReplace(),
+		},
 	}
 }
 
@@ -516,6 +441,7 @@ func healthSchema() schema.SingleNestedAttribute {
 		// The value will be auto-generated in NVCF API response when user using legacy health_uri field.
 		PlanModifiers: []planmodifier.Object{
 			objectplanmodifier.UseStateForUnknown(),
+			objectplanmodifier.RequiresReplace(),
 		},
 		Attributes: map[string]schema.Attribute{
 			"protocol": schema.StringAttribute{
@@ -608,35 +534,59 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			"version_id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Function Version ID",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"function_name": schema.StringAttribute{
 				MarkdownDescription: "Function name",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"helm_chart": schema.StringAttribute{
 				MarkdownDescription: "Helm chart registry uri",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"helm_chart_service_name": schema.StringAttribute{
 				MarkdownDescription: "Target service name",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"inference_port": schema.Int64Attribute{
 				MarkdownDescription: "Target port, will be service port or container port base on function-based",
 				Optional:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"container_image": schema.StringAttribute{
 				MarkdownDescription: "Container image uri",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"container_environment": containerEnvironmentsSchema(),
 			"container_args": schema.StringAttribute{
 				MarkdownDescription: "Args to be passed when launching the container",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"inference_url": schema.StringAttribute{
 				MarkdownDescription: "Service endpoint Path.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"health_uri": schema.StringAttribute{
 				MarkdownDescription: "Service health endpoint Path. Default is \"/v2/health/ready\"",
@@ -645,6 +595,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				DeprecationMessage:  "The parameter is deprecated. Please replace it with `health`",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"health":    healthSchema(),
@@ -654,6 +605,8 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "Tags of the function.",
 				ElementType:         types.StringType,
 				Optional:            true,
+				Computed:            true,
+				Default:             setdefault.StaticValue(types.SetValueMust(types.StringType, nil)),
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the function",
@@ -661,6 +614,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"function_type": schema.StringAttribute{
@@ -668,12 +622,20 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("DEFAULT"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"api_body_format": schema.StringAttribute{
 				MarkdownDescription: "API Body Format. Default is \"CUSTOM\"",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("CUSTOM"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
 			"secrets":                   secretsSchema(),
@@ -889,15 +851,12 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 			"Failed to create Cloud Function",
 			err.Error(),
 		)
-	}
-
-	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	function := createNvidiaCloudFunctionResponse.Function
 
-	authorizedAccounts := authorizeAccountToInvokeFunction(ctx, function.ID, function.VersionID, data.AuthorizedParties, &resp.Diagnostics, *r.client)
+	authorizedAccounts := updateFunctionAuthorizedParties(ctx, function.ID, function.VersionID, data.AuthorizedParties, &resp.Diagnostics, *r.client)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -906,13 +865,13 @@ func (r *NvidiaCloudFunctionResource) Create(ctx context.Context, req resource.C
 	if len(data.DeploymentSpecifications.Elements()) == 0 {
 		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &function, nil, &authorizedAccounts)
 	} else {
-		functionDeployment := createDeployment(ctx, data, &resp.Diagnostics, *r.client, function)
+		deployment := r.createDeployment(ctx, data, &resp.Diagnostics, function)
 
 		if resp.Diagnostics.HasError() {
 			r.deleteFailedDeploymentVersion(ctx, data.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &function, &functionDeployment, &authorizedAccounts)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &function, &deployment, &authorizedAccounts)
 	}
 
 	// Save data into Terraform state
@@ -944,35 +903,22 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	var listNvidiaCloudFunctionVersionsResponse, err = r.client.ListNvidiaCloudFunctionVersions(ctx, data.Id.ValueString())
+	var getFunctionVersionResponse, err = r.client.GetNvidiaCloudFunctionVersion(ctx, data.Id.ValueString(), data.VersionID.ValueString())
 
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to read Cloud Function versions",
-			"Got unexpected result when reading Cloud Function",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	versionNotFound := true
-	var functionVersion utils.NvidiaCloudFunctionInfo
-
-	for _, f := range listNvidiaCloudFunctionVersionsResponse.Functions {
-		if f.ID == data.Id.ValueString() && f.VersionID == data.VersionID.ValueString() {
-			functionVersion = f
-			versionNotFound = false
-			break
+		// Check if the error indicates that the resource was not found
+		if strings.Contains(err.Error(), "Not found") {
+			// Resource does not exist anymore, remove from state
+			tflog.Warn(ctx, fmt.Sprintf("Cloud Function version %s/%s no longer exists, removing from state", data.Id.ValueString(), data.VersionID.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
 		}
-	}
 
-	if versionNotFound {
-		resp.Diagnostics.AddError("Version ID Not Found Error", fmt.Sprintf("Unable to find the target version ID %s", data.VersionID.ValueString()))
-	}
-
-	if resp.Diagnostics.HasError() {
+		// For other errors, report them as usual
+		resp.Diagnostics.AddError(
+			"Failed to Get Cloud Function version",
+			err.Error(),
+		)
 		return
 	}
 
@@ -996,13 +942,13 @@ func (r *NvidiaCloudFunctionResource) Read(ctx context.Context, req resource.Rea
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to get Cloud Function",
+			"Failed to get Cloud Function authorization",
 			err.Error(),
 		)
+		return
 	}
 
-	r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &functionVersion, &readNvidiaCloudFunctionDeploymentResponse.Deployment, authorizedAccounts)
-
+	r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &data, &getFunctionVersionResponse.Function, &readNvidiaCloudFunctionDeploymentResponse.Deployment, authorizedAccounts)
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -1029,66 +975,45 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	ctx, cancel := context.WithTimeout(ctx, updateTimeout)
 	defer cancel()
 
-	request := r.createOrUpdateRequest(ctx, plan, &resp.Diagnostics)
-
-	if resp.Diagnostics.HasError() {
-		return
+	// Update tags if they've changed
+	if !plan.Tags.Equal(state.Tags) {
+		updateTags(ctx, state.Id.ValueString(), state.VersionID.ValueString(), plan.Tags, &resp.Diagnostics, *r.client)
 	}
 
-	var createNvidiaCloudFunctionResponse, err = r.client.CreateNvidiaCloudFunction(ctx,
-		plan.Id.ValueString(),
-		request,
-	)
+	getFunctionVersionResponse, err := r.client.GetNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to update Cloud Function",
+			"Failed to get Cloud Function",
 			err.Error(),
 		)
 	}
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	function := &getFunctionVersionResponse.Function
 
-	function := createNvidiaCloudFunctionResponse.Function
-
-	// We don't need to clean up the old function authorizeParties since we will create new functions to replace old one every time.
-	// However if we want to support update without function recreation, we need to handle the case for remove all authorized accounts
-	// (i.e, the AuthorizedParties become empty)
-	authorizedAccounts := authorizeAccountToInvokeFunction(ctx, function.ID, function.VersionID, plan.AuthorizedParties, &resp.Diagnostics, *r.client)
+	authorizedAccounts := updateFunctionAuthorizedParties(ctx, function.ID, function.VersionID, plan.AuthorizedParties, &resp.Diagnostics, *r.client)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	if len(plan.DeploymentSpecifications.Elements()) == 0 {
-		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
+		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionID.ValueString()),
+				fmt.Sprintf("Failed to delete Cloud Function Deployment %s", plan.VersionID.ValueString()),
 				err.Error(),
 			)
 		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, &function, nil, &authorizedAccounts)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, function, nil, &authorizedAccounts)
 	} else {
-		functionDeployment := createDeployment(ctx, plan, &resp.Diagnostics, *r.client, function)
+		deployment := r.updateDeployment(ctx, plan, &resp.Diagnostics)
 
 		if resp.Diagnostics.HasError() {
-			r.deleteFailedDeploymentVersion(ctx, plan.KeepFailedResource.ValueBool(), function.ID, function.VersionID, &resp.Diagnostics)
 			return
 		}
-
-		err = r.client.DeleteNvidiaCloudFunctionVersion(ctx, state.Id.ValueString(), state.VersionID.ValueString())
-		// The case we still save state, since the deployment is disabled and user can delete the version manually.
-		if err != nil {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("Failed to delete Cloud Function version %s", plan.VersionID.ValueString()),
-				err.Error(),
-			)
-		}
-		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, &function, &functionDeployment, &authorizedAccounts)
+		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, function, &deployment, &authorizedAccounts)
 	}
 
 	// Save updated data into Terraform state
@@ -1130,4 +1055,120 @@ func (r *NvidiaCloudFunctionResource) ImportState(ctx context.Context, req resou
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("version_id"), idParts[1])...)
+}
+
+func (r *NvidiaCloudFunctionResource) prepareDeploymentSpecifications(
+	ctx context.Context,
+	data NvidiaCloudFunctionResourceModel,
+	diag *diag.Diagnostics,
+) []utils.NvidiaCloudFunctionDeploymentSpecification {
+	if data.DeploymentSpecifications.IsNull() || len(data.DeploymentSpecifications.Elements()) == 0 {
+		return nil
+	}
+
+	deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0, len(data.DeploymentSpecifications.Elements()))
+	diag.Append(data.DeploymentSpecifications.ElementsAs(ctx, &deploymentSpecifications, false)...)
+
+	if diag.HasError() {
+		return nil
+	}
+
+	deploymentSpecificationsOption := make([]utils.NvidiaCloudFunctionDeploymentSpecification, 0)
+	for _, v := range deploymentSpecifications {
+		var configuration interface{}
+		if v.Configuration.ValueString() != "" {
+			err := json.Unmarshal([]byte(v.Configuration.ValueString()), &configuration)
+
+			if err != nil {
+				diag.AddError(
+					"Failed to parse deployment configuration",
+					err.Error(),
+				)
+				return nil
+			}
+		}
+
+		d := utils.NvidiaCloudFunctionDeploymentSpecification{
+			Backend:               v.Backend.ValueString(),
+			InstanceType:          v.InstanceType.ValueString(),
+			Gpu:                   v.GpuType.ValueString(),
+			MaxInstances:          int(v.MaxInstances.ValueInt64()),
+			MinInstances:          int(v.MinInstances.ValueInt64()),
+			MaxRequestConcurrency: int(v.MaxRequestConcurrency.ValueInt64()),
+			Configuration:         configuration,
+		}
+		deploymentSpecificationsOption = append(deploymentSpecificationsOption, d)
+	}
+
+	return deploymentSpecificationsOption
+}
+
+func (r *NvidiaCloudFunctionResource) createDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics, function utils.NvidiaCloudFunctionInfo) utils.NvidiaCloudFunctionDeployment {
+	var functionDeployment utils.NvidiaCloudFunctionDeployment
+
+	deploymentSpecificationsOption := r.prepareDeploymentSpecifications(ctx, data, diag)
+	if diag.HasError() || deploymentSpecificationsOption == nil {
+		return functionDeployment
+	}
+
+	createNvidiaCloudFunctionDeploymentResponse, err := r.client.CreateNvidiaCloudFunctionDeployment(
+		ctx, function.ID, function.VersionID,
+		utils.CreateNvidiaCloudFunctionDeploymentRequest{
+			DeploymentSpecifications: deploymentSpecificationsOption,
+		},
+	)
+
+	if err != nil {
+		diag.AddError(
+			"Failed to create Cloud Function Deployment",
+			err.Error(),
+		)
+		return functionDeployment
+	}
+
+	err = r.client.WaitingDeploymentCompleted(ctx, function.ID, function.VersionID)
+	if err != nil {
+		diag.AddError(
+			"Failed to create Cloud Function Deployment",
+			err.Error(),
+		)
+		return functionDeployment
+	}
+
+	return createNvidiaCloudFunctionDeploymentResponse.Deployment
+}
+
+func (r *NvidiaCloudFunctionResource) updateDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics) utils.NvidiaCloudFunctionDeployment {
+	var functionDeployment utils.NvidiaCloudFunctionDeployment
+
+	deploymentSpecificationsOption := r.prepareDeploymentSpecifications(ctx, data, diag)
+	if diag.HasError() || deploymentSpecificationsOption == nil {
+		return functionDeployment
+	}
+
+	updateNvidiaCloudFunctionDeploymentResponse, err := r.client.UpdateNvidiaCloudFunctionDeployment(
+		ctx, data.Id.ValueString(), data.VersionID.ValueString(),
+		utils.UpdateNvidiaCloudFunctionDeploymentRequest{
+			DeploymentSpecifications: deploymentSpecificationsOption,
+		},
+	)
+
+	if err != nil {
+		diag.AddError(
+			"Failed to update Cloud Function Deployment",
+			err.Error(),
+		)
+		return functionDeployment
+	}
+
+	err = r.client.WaitingDeploymentCompleted(ctx, data.Id.ValueString(), data.VersionID.ValueString())
+	if err != nil {
+		diag.AddError(
+			"Failed to update Cloud Function Deployment",
+			err.Error(),
+		)
+		return functionDeployment
+	}
+
+	return updateNvidiaCloudFunctionDeploymentResponse.Deployment
 }
