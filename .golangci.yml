@@ -41,7 +41,6 @@ linters:
   enable:
     - durationcheck
     - errcheck
-    - exportloopref
     - forcetypeassert
     - godot
     - gofmt

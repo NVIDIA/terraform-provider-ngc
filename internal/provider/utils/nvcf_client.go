@@ -115,7 +115,7 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	return err
 }
 
-// Function Management
+// Function Management APIs.
 func (c *NVCFClient) CreateNvidiaCloudFunction(ctx context.Context, functionID string, req CreateNvidiaCloudFunctionRequest) (resp *CreateNvidiaCloudFunctionResponse, err error) {
 	var createNvidiaCloudFunctionResponse CreateNvidiaCloudFunctionResponse
 
@@ -169,7 +169,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionVersion(ctx context.Context, funct
 	return err
 }
 
-// Function Deployment APIs
+// Function Deployment APIs.
 func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string, req CreateNvidiaCloudFunctionDeploymentRequest) (resp *CreateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var createNvidiaCloudFunctionDeploymentResponse CreateNvidiaCloudFunctionDeploymentResponse
 	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/functions/" + functionID + "/versions/" + functionVersionID
@@ -231,7 +231,7 @@ func (c *NVCFClient) DeleteNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	return &deleteNvidiaCloudFunctionDeploymentResponse, err
 }
 
-// Function Sharing APIs
+// Function Sharing APIs.
 func (c *NVCFClient) AuthorizeAccountsToInvokeFunction(ctx context.Context, functionID string, functionVersionID string, req AuthorizeAccountsToInvokeFunctionRequest) (resp *AuthorizeAccountsToInvokeFunctionResponse, err error) {
 	var authorizeAccountsToInvokeFunctionResponse AuthorizeAccountsToInvokeFunctionResponse
 
