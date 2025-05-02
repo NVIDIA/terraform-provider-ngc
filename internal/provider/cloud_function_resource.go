@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	custom_planmodifier "gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/planmodifier"
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/utils"
 )
 
@@ -379,6 +380,9 @@ func resourcesSchema() schema.SetNestedAttribute {
 				"uri": schema.StringAttribute{
 					MarkdownDescription: "Artifact URI",
 					Required:            true,
+					PlanModifiers: []planmodifier.String{
+						custom_planmodifier.CloudFunctionArtifactUriPlanModifier{},
+					},
 				},
 			},
 		},
@@ -404,6 +408,9 @@ func modelsSchema() schema.SetNestedAttribute {
 				"uri": schema.StringAttribute{
 					MarkdownDescription: "Artifact URI",
 					Required:            true,
+					PlanModifiers: []planmodifier.String{
+						custom_planmodifier.CloudFunctionArtifactUriPlanModifier{},
+					},
 				},
 			},
 		},
