@@ -220,6 +220,24 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 	diag.Append(authorizePartiesSetTypeDiag...)
 	data.AuthorizedParties = authorizePartiesSetType
 
+	if functionInfo.Telemetries != nil {
+		telemetriesObject := &NvidiaCloudFunctionTelemetryModel{}
+
+		if functionInfo.Telemetries.LogsTelemetryId != "" {
+			telemetriesObject.LogsTelemetryId = types.StringValue(functionInfo.Telemetries.LogsTelemetryId)
+		}
+		if functionInfo.Telemetries.MetricsTelemetryId != "" {
+			telemetriesObject.MetricsTelemetryId = types.StringValue(functionInfo.Telemetries.MetricsTelemetryId)
+		}
+		if functionInfo.Telemetries.TracesTelemetryId != "" {
+			telemetriesObject.TracesTelemetryId = types.StringValue(functionInfo.Telemetries.TracesTelemetryId)
+		}
+
+		telemetriesObjectType, telemetriesObjectTypeDiag := types.ObjectValueFrom(ctx, telemetriesObject.attrTypes(), telemetriesObject)
+		diag.Append(telemetriesObjectTypeDiag...)
+		data.Telemetries = telemetriesObjectType
+	}
+
 	// We don't update Secret from response, since the secret won't return in response.
 }
 
@@ -508,8 +526,33 @@ func authorizedPartiesSchema() schema.SetNestedAttribute {
 		Computed:            true,
 		Optional:            true,
 		NestedObject:        authorizedPartySchema,
-		MarkdownDescription: "Associated authorized parties for a specific version of a function",
+		MarkdownDescription: "List of authorized accounts",
 		Default:             setdefault.StaticValue(types.SetValueMust(authorizedPartySchema.Type(), nil)),
+	}
+}
+
+func telemetriesSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		MarkdownDescription: "Telemetry configuration for the function",
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+			objectplanmodifier.RequiresReplace(),
+		},
+		Attributes: map[string]schema.Attribute{
+			"logs_telemetry_id": schema.StringAttribute{
+				MarkdownDescription: "UUID representing the logs telemetry.",
+				Optional:            true,
+			},
+			"metrics_telemetry_id": schema.StringAttribute{
+				MarkdownDescription: "UUID representing the metrics telemetry.",
+				Optional:            true,
+			},
+			"traces_telemetry_id": schema.StringAttribute{
+				MarkdownDescription: "UUID representing the traces telemetry.",
+				Optional:            true,
+			},
+		},
 	}
 }
 
@@ -650,6 +693,7 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			"deployment_specifications": deploymentSpecificationsSchema(),
 			"secrets":                   secretsSchema(),
 			"authorized_parties":        authorizedPartiesSchema(),
+			"telemetries":               telemetriesSchema(),
 			"keep_failed_resource": schema.BoolAttribute{
 				MarkdownDescription: "Don't delete failed resource. Default is \"false\"",
 				Optional:            true,
@@ -821,6 +865,23 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 			})
 		}
 	}
+
+	if !data.Telemetries.IsNull() && !data.Telemetries.IsUnknown() {
+		telemetries := &NvidiaCloudFunctionTelemetryModel{}
+		data.Telemetries.As(ctx, telemetries, basetypes.ObjectAsOptions{})
+		request.Telemetries = &utils.NvidiaCloudFunctionTelemetry{}
+
+		if !telemetries.LogsTelemetryId.IsNull() && !telemetries.LogsTelemetryId.IsUnknown() {
+			request.Telemetries.LogsTelemetryId = telemetries.LogsTelemetryId.ValueString()
+		}
+		if !telemetries.MetricsTelemetryId.IsNull() && !telemetries.MetricsTelemetryId.IsUnknown() {
+			request.Telemetries.MetricsTelemetryId = telemetries.MetricsTelemetryId.ValueString()
+		}
+		if !telemetries.TracesTelemetryId.IsNull() && !telemetries.TracesTelemetryId.IsUnknown() {
+			request.Telemetries.TracesTelemetryId = telemetries.TracesTelemetryId.ValueString()
+		}
+	}
+
 	return request
 }
 
