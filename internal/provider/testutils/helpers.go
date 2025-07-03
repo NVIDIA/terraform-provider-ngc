@@ -67,6 +67,10 @@ var TestSecretNames []string
 var TestAuthorizedParty1 string
 var TestAuthorizedParty2 string
 
+var TestLogsTelemetryId string
+var TestMetricsTelemetryId string
+var TestTracesTelemetryId string
+
 func init() {
 	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
 
@@ -126,6 +130,10 @@ func init() {
 
 	TestAuthorizedParty1 = os.Getenv("AUTHORIZED_PARTY_1")
 	TestAuthorizedParty2 = os.Getenv("AUTHORIZED_PARTY_2")
+
+	TestLogsTelemetryId = os.Getenv("LOGS_TELEMETRY_ID")
+	TestMetricsTelemetryId = os.Getenv("METRICS_TELEMETRY_ID")
+	TestTracesTelemetryId = os.Getenv("TRACES_TELEMETRY_ID")
 }
 
 func CreateHelmFunction(t *testing.T) *utils.CreateNvidiaCloudFunctionResponse {
