@@ -57,6 +57,7 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	Resources                types.Set                               `tfsdk:"resources"`
 	FunctionType             types.String                            `tfsdk:"function_type"`
 	AuthorizedParties        types.Set                               `tfsdk:"authorized_parties"`
+	Telemetries              types.Object                            `tfsdk:"telemetries"`
 }
 
 func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel(
@@ -209,6 +210,18 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		diag.Append(partiesSetTypeDiag...)
 		data.AuthorizedParties = partiesSetType
 	}
+
+	if functionInfo.Telemetries != nil {
+		telemetriesObject := &NvidiaCloudFunctionTelemetryModel{
+			LogsTelemetryId:    types.StringValue(functionInfo.Telemetries.LogsTelemetryId),
+			MetricsTelemetryId: types.StringValue(functionInfo.Telemetries.MetricsTelemetryId),
+			TracesTelemetryId:  types.StringValue(functionInfo.Telemetries.TracesTelemetryId),
+		}
+
+		telemetriesObjectType, telemetriesObjectTypeDiag := types.ObjectValueFrom(ctx, telemetriesObject.attrTypes(), telemetriesObject)
+		diag.Append(telemetriesObjectTypeDiag...)
+		data.Telemetries = telemetriesObjectType
+	}
 }
 
 func (d *NvidiaCloudFunctionDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -293,6 +306,7 @@ func (d *NvidiaCloudFunctionDataSource) Schema(ctx context.Context, req datasour
 				Computed:            true,
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
+			"telemetries":               telemetriesSchema(),
 		},
 	}
 }

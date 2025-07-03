@@ -23,11 +23,11 @@ Nvidia Cloud Function Resource
 ### Optional
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
-- `authorized_parties` (Attributes Set) Associated authorized parties for a specific version of a function (see [below for nested schema](#nestedatt--authorized_parties))
+- `authorized_parties` (Attributes Set) List of authorized accounts (see [below for nested schema](#nestedatt--authorized_parties))
 - `container_args` (String) Args to be passed when launching the container
 - `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
-- `deployment_specifications` (Attributes Set) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
 - `description` (String) Description of the function
 - `function_id` (String) Function ID
 - `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
@@ -41,6 +41,7 @@ Nvidia Cloud Function Resource
 - `resources` (Attributes Set) (see [below for nested schema](#nestedatt--resources))
 - `secrets` (Attributes Set) (see [below for nested schema](#nestedatt--secrets))
 - `tags` (Set of String) Tags of the function.
+- `telemetries` (Attributes) Telemetry configuration for the function (see [below for nested schema](#nestedatt--telemetries))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
@@ -122,6 +123,16 @@ Required:
 
 - `name` (String) Secret name
 - `value` (String, Sensitive) Secret value. Must be a string or json node.
+
+
+<a id="nestedatt--telemetries"></a>
+### Nested Schema for `telemetries`
+
+Optional:
+
+- `logs_telemetry_id` (String) UUID representing the logs telemetry.
+- `metrics_telemetry_id` (String) UUID representing the metrics telemetry.
+- `traces_telemetry_id` (String) UUID representing the traces telemetry.
 
 
 <a id="nestedatt--timeouts"></a>

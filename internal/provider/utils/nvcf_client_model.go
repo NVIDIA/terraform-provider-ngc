@@ -66,6 +66,12 @@ type NvidiaCloudFunctionResource struct {
 	URI     string `json:"uri"`
 }
 
+type NvidiaCloudFunctionTelemetry struct {
+	LogsTelemetryId    string `json:"logsTelemetryId,omitempty"`
+	MetricsTelemetryId string `json:"metricsTelemetryId,omitempty"`
+	TracesTelemetryId  string `json:"tracesTelemetryId,omitempty"`
+}
+
 type NvidiaCloudFunctionInfo struct {
 	ID                      string                                    `json:"id"`
 	NcaID                   string                                    `json:"ncaId"`
@@ -91,6 +97,7 @@ type NvidiaCloudFunctionInfo struct {
 	Secrets                 []string                                  `json:"secrets"`
 	Tags                    []string                                  `json:"tags"`
 	FunctionType            string                                    `json:"functionType"`
+	Telemetries             *NvidiaCloudFunctionTelemetry             `json:"telemetries,omitempty"`
 }
 
 type CreateNvidiaCloudFunctionRequest struct {
@@ -111,6 +118,7 @@ type CreateNvidiaCloudFunctionRequest struct {
 	Secrets              []NvidiaCloudFunctionSecret               `json:"secrets,omitempty"`
 	Tags                 []string                                  `json:"tags,omitempty"`
 	FunctionType         string                                    `json:"functionType"`
+	Telemetries          *NvidiaCloudFunctionTelemetry             `json:"telemetries,omitempty"`
 }
 
 type CreateNvidiaCloudFunctionResponse struct {

@@ -23,11 +23,11 @@ Nvidia Cloud Function Data Source
 ### Optional
 
 - `api_body_format` (String) API Body Format. Default is "CUSTOM"
-- `authorized_parties` (Attributes Set) Associated authorized parties for a specific version of a function (see [below for nested schema](#nestedatt--authorized_parties))
+- `authorized_parties` (Attributes Set) List of authorized accounts (see [below for nested schema](#nestedatt--authorized_parties))
 - `container_args` (String) Args to be passed when launching the container
 - `container_environment` (Attributes Set) (see [below for nested schema](#nestedatt--container_environment))
 - `container_image` (String) Container image uri
-- `deployment_specifications` (Attributes Set) (see [below for nested schema](#nestedatt--deployment_specifications))
+- `deployment_specifications` (Attributes List) (see [below for nested schema](#nestedatt--deployment_specifications))
 - `description` (String) Description of the function
 - `function_name` (String) Function name
 - `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
@@ -40,6 +40,7 @@ Nvidia Cloud Function Data Source
 - `models` (Attributes Set) (see [below for nested schema](#nestedatt--models))
 - `resources` (Attributes Set) (see [below for nested schema](#nestedatt--resources))
 - `tags` (Set of String) Tags of the function.
+- `telemetries` (Attributes) Telemetry configuration for the function (see [below for nested schema](#nestedatt--telemetries))
 
 ### Read-Only
 
@@ -109,3 +110,13 @@ Required:
 - `name` (String) Artifact name
 - `uri` (String) Artifact URI
 - `version` (String) Artifact version
+
+
+<a id="nestedatt--telemetries"></a>
+### Nested Schema for `telemetries`
+
+Optional:
+
+- `logs_telemetry_id` (String) UUID representing the logs telemetry.
+- `metrics_telemetry_id` (String) UUID representing the metrics telemetry.
+- `traces_telemetry_id` (String) UUID representing the traces telemetry.

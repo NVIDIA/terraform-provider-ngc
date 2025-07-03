@@ -70,6 +70,20 @@ type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
 	InstanceType          types.String `tfsdk:"instance_type"`
 }
 
+type NvidiaCloudFunctionTelemetryModel struct {
+	LogsTelemetryId    types.String `tfsdk:"logs_telemetry_id"`
+	MetricsTelemetryId types.String `tfsdk:"metrics_telemetry_id"`
+	TracesTelemetryId  types.String `tfsdk:"traces_telemetry_id"`
+}
+
+func (m *NvidiaCloudFunctionTelemetryModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_telemetry_id":    types.StringType,
+		"metrics_telemetry_id": types.StringType,
+		"traces_telemetry_id":  types.StringType,
+	}
+}
+
 type NvidiaCloudFunctionResourceModel struct {
 	Id                       types.String   `tfsdk:"id"`
 	FunctionID               types.String   `tfsdk:"function_id"`
@@ -96,4 +110,5 @@ type NvidiaCloudFunctionResourceModel struct {
 	Timeouts                 timeouts.Value `tfsdk:"timeouts"`
 	Secrets                  types.Set      `tfsdk:"secrets"`
 	AuthorizedParties        types.Set      `tfsdk:"authorized_parties"`
+	Telemetries              types.Object   `tfsdk:"telemetries"`
 }
