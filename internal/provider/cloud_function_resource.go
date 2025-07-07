@@ -54,6 +54,7 @@ type NvidiaCloudFunctionResource struct {
 	client *utils.NVCFClient
 }
 
+//gocyclo:ignore
 func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBaseOnResponse(
 	ctx context.Context, diag *diag.Diagnostics,
 	data *NvidiaCloudFunctionResourceModel,
