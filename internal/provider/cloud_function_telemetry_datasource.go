@@ -130,7 +130,7 @@ func (d *NvidiaCloudFunctionTelemetryDataSource) Read(ctx context.Context, req d
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// updateTelemetryDataSourceModel updates the Terraform model with data from the API response
+// updateTelemetryDataSourceModel updates the Terraform model with data from the API response.
 func (d *NvidiaCloudFunctionTelemetryDataSource) updateTelemetryDataSourceModel(ctx context.Context, data *NvidiaCloudFunctionTelemetryDataSourceModel, telemetry *utils.NvidiaCloudFunctionTelemetry) {
 	data.Id = types.StringValue(telemetry.TelemetryId)
 	data.Name = types.StringValue(telemetry.Name)
