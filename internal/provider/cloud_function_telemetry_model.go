@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -19,11 +18,4 @@ type NvidiaCloudFunctionTelemetryResourceModel struct {
 	Types     types.Set    `tfsdk:"types"`
 	Secret    types.Object `tfsdk:"secret"`
 	CreatedAt types.String `tfsdk:"created_at"`
-}
-
-func (m *NvidiaCloudFunctionTelemetryResourceSecretModel) attrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"name":  types.StringType,
-		"value": types.StringType,
-	}
 }

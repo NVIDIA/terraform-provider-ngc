@@ -260,7 +260,7 @@ func (c *NVCFClient) GetFunctionAuthorization(ctx context.Context, functionID st
 	return &authorizeAccountsToInvokeFunctionResponse, err
 }
 
-// Telemetry APIs
+// Telemetry APIs.
 func (c *NVCFClient) CreateTelemetry(ctx context.Context, req CreateNvidiaCloudFunctionTelemetryRequest) (resp *CreateNvidiaCloudFunctionTelemetryResponse, err error) {
 	var telemetryResponse CreateNvidiaCloudFunctionTelemetryResponse
 

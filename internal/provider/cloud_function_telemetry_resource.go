@@ -245,7 +245,6 @@ func (r *NvidiaCloudFunctionTelemetryResource) Read(ctx context.Context, req res
 }
 
 func (r *NvidiaCloudFunctionTelemetryResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-
 	resp.Diagnostics.AddError(
 		"Update not supported - implementation error.",
 		"Telemetry APIs do not support updates. You should make sure all the changes will trigger force-replaced.",
@@ -278,7 +277,7 @@ func (r *NvidiaCloudFunctionTelemetryResource) ImportState(ctx context.Context, 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
-// updateTelemetryResourceModel updates the Terraform model with data from the API response
+// updateTelemetryResourceModel updates the Terraform model with data from the API response.
 func (r *NvidiaCloudFunctionTelemetryResource) updateTelemetryResourceModel(ctx context.Context, data *NvidiaCloudFunctionTelemetryResourceModel, telemetry *utils.NvidiaCloudFunctionTelemetry) {
 	data.Id = types.StringValue(telemetry.TelemetryId)
 	data.Protocol = types.StringValue(telemetry.Protocol)

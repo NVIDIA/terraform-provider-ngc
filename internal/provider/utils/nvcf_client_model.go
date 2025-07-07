@@ -72,7 +72,7 @@ type NvidiaCloudFunctionTelemetryIds struct {
 	TracesTelemetryId  string `json:"tracesTelemetryId,omitempty"`
 }
 
-// Telemetry API models
+// Telemetry API models.
 type NvidiaCloudFunctionTelemetrySecret struct {
 	Name  string      `json:"name"`
 	Value interface{} `json:"value"`
