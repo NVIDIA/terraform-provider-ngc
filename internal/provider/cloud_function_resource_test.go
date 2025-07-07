@@ -1259,32 +1259,6 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 					testutils.TestModel1Version,
 					testutils.TestModel1Uri,
 				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
-
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1FullyQualifiedUri),
-				),
 				ExpectNonEmptyPlan: false,
 				PlanOnly:           true,
 			},
@@ -1443,9 +1417,9 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1FullyQualifiedUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
 				),
 			},
 			// Verify Function Update again to bring back telemetries
@@ -1512,9 +1486,9 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1FullyQualifiedUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.logs_telemetry_id", testutils.TestLogsTelemetryId),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.metrics_telemetry_id", testutils.TestMetricsTelemetryId),
@@ -1584,9 +1558,9 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1FullyQualifiedUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.logs_telemetry_id", testutils.TestLogsTelemetryId),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.metrics_telemetry_id", testutils.TestMetricsTelemetryId),
