@@ -259,3 +259,42 @@ func (c *NVCFClient) GetFunctionAuthorization(ctx context.Context, functionID st
 	tflog.Debug(ctx, "Get Function Authorization")
 	return &authorizeAccountsToInvokeFunctionResponse, err
 }
+
+// Telemetry APIs
+func (c *NVCFClient) CreateTelemetry(ctx context.Context, req CreateNvidiaCloudFunctionTelemetryRequest) (resp *CreateNvidiaCloudFunctionTelemetryResponse, err error) {
+	var telemetryResponse CreateNvidiaCloudFunctionTelemetryResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/telemetries"
+
+	err = c.sendRequest(ctx, requestURL, http.MethodPost, req, &telemetryResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Create Telemetry")
+	return &telemetryResponse, err
+}
+
+func (c *NVCFClient) GetTelemetry(ctx context.Context, telemetryId string) (resp *GetNvidiaCloudFunctionTelemetryResponse, err error) {
+	var telemetryResponse GetNvidiaCloudFunctionTelemetryResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/telemetries/" + telemetryId
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &telemetryResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "Get Telemetry")
+	return &telemetryResponse, err
+}
+
+func (c *NVCFClient) ListTelemetries(ctx context.Context) (resp *ListNvidiaCloudFunctionTelemetryResponse, err error) {
+	var listTelemetryResponse ListNvidiaCloudFunctionTelemetryResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/telemetries"
+
+	err = c.sendRequest(ctx, requestURL, http.MethodGet, nil, &listTelemetryResponse, map[int]bool{200: true})
+	tflog.Debug(ctx, "List Telemetries")
+	return &listTelemetryResponse, err
+}
+
+func (c *NVCFClient) DeleteTelemetry(ctx context.Context, telemetryId string) (err error) {
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/telemetries/" + telemetryId
+
+	err = c.sendRequest(ctx, requestURL, http.MethodDelete, nil, nil, map[int]bool{204: true})
+	tflog.Debug(ctx, "Delete Telemetry")
+	return err
+}

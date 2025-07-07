@@ -24,7 +24,7 @@ import (
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/testutils"
 )
 
-func generateStateResourceId(resourceName string) resource.ImportStateIdFunc {
+func generateFunctionStateResourceId(resourceName string) resource.ImportStateIdFunc {
 	return func(state *terraform.State) (string, error) {
 		var rawState map[string]string
 		for _, m := range state.Modules {
@@ -462,7 +462,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 			// Verify Function Import
 			{
 				ResourceName:            testCloudFunctionResourceFullPath,
-				ImportStateIdFunc:       generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc:       generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{},
@@ -663,7 +663,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -947,7 +947,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1138,7 +1138,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1265,7 +1265,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1571,7 +1571,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1658,7 +1658,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1745,7 +1745,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSucc
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{

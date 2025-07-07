@@ -870,7 +870,7 @@ func (r *NvidiaCloudFunctionResource) createOrUpdateRequest(ctx context.Context,
 	if !data.Telemetries.IsNull() && !data.Telemetries.IsUnknown() {
 		telemetries := &NvidiaCloudFunctionTelemetryModel{}
 		data.Telemetries.As(ctx, telemetries, basetypes.ObjectAsOptions{})
-		request.Telemetries = &utils.NvidiaCloudFunctionTelemetry{}
+		request.Telemetries = &utils.NvidiaCloudFunctionTelemetryIds{}
 
 		if !telemetries.LogsTelemetryId.IsNull() && !telemetries.LogsTelemetryId.IsUnknown() {
 			request.Telemetries.LogsTelemetryId = telemetries.LogsTelemetryId.ValueString()

@@ -143,6 +143,7 @@ func (p *NgcProvider) Configure(ctx context.Context, req provider.ConfigureReque
 func (p *NgcProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewNvidiaCloudFunctionResource,
+		NewNvidiaCloudFunctionTelemetryResource,
 	}
 }
 
