@@ -24,7 +24,7 @@ import (
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/testutils"
 )
 
-func generateStateResourceId(resourceName string) resource.ImportStateIdFunc {
+func generateFunctionStateResourceId(resourceName string) resource.ImportStateIdFunc {
 	return func(state *terraform.State) (string, error) {
 		var rawState map[string]string
 		for _, m := range state.Modules {
@@ -220,6 +220,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -303,6 +304,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -429,6 +431,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -459,7 +462,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 			// Verify Function Import
 			{
 				ResourceName:            testCloudFunctionResourceFullPath,
-				ImportStateIdFunc:       generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc:       generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{},
@@ -532,6 +535,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 
 					// Verify container attribute not exist
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "id", functionInfo.Function.ID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_id", functionInfo.Function.ID),
@@ -625,6 +630,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 					// Verify container attribute not exist
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
 
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
+
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "id", functionInfo.Function.ID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_id", functionInfo.Function.ID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
@@ -656,7 +663,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -774,6 +781,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -898,6 +906,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -938,7 +947,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1008,6 +1017,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "id", functionInfo.Function.ID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_id", functionInfo.Function.ID),
@@ -1094,6 +1104,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "id", functionInfo.Function.ID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_id", functionInfo.Function.ID),
@@ -1127,7 +1138,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1189,6 +1200,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -1247,6 +1259,75 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 					testutils.TestModel1Version,
 					testutils.TestModel1Uri,
 				),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
+			},
+			// Verify Function Import
+			{
+				ResourceName:      testCloudFunctionResourceFullPath,
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"function_id", // Not assigned when import
+				},
+			},
+		},
+	})
+}
+
+func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeploymentSuccess(t *testing.T) {
+	var functionName = "TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeploymentSuccess"
+	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Verify Function Creation
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
+							telemetries = {
+								logs_telemetry_id    = "%s"
+								metrics_telemetry_id = "%s"
+							}
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
+					testutils.TestLogsTelemetryId,
+					testutils.TestMetricsTelemetryId,
+				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
 
@@ -1268,9 +1349,221 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
 
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.name", testutils.TestModel1Name),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.version", testutils.TestModel1Version),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.1.uri", testutils.TestModel1FullyQualifiedUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.logs_telemetry_id", testutils.TestLogsTelemetryId),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.metrics_telemetry_id", testutils.TestMetricsTelemetryId),
+				),
+			},
+			// Verify Function Update with removing telemetries
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
+				),
+			},
+			// Verify Function Update again to bring back telemetries
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
+							telemetries = {
+								logs_telemetry_id    = "%s"
+								metrics_telemetry_id = "%s"
+							}
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
+					testutils.TestLogsTelemetryId,
+					testutils.TestMetricsTelemetryId,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.logs_telemetry_id", testutils.TestLogsTelemetryId),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.metrics_telemetry_id", testutils.TestMetricsTelemetryId),
+				),
+			},
+			// Verify Function Update again to remove telemetries
+			{
+				Config: fmt.Sprintf(`
+						resource "ngc_cloud_function" "%s" {
+							function_name           = "%s"
+							container_image         = "%s"
+							inference_port          = %d
+							inference_url           = "%s"
+							health                    = {
+								uri                  = "%s"
+								port                 = %d
+								expected_status_code = 200
+								timeout              = "PT10S"
+								protocol             = "HTTP"
+							}
+							api_body_format         = "%s"
+							models                  = [
+							    {
+							    	name    = "%s"
+									version = "%s"
+									uri     = "%s"
+								}
+							]
+							telemetries = {
+								logs_telemetry_id    = "%s"
+								metrics_telemetry_id = "%s"
+							}
+						}
+						`,
+					testCloudFunctionResourceName,
+					functionName,
+					testutils.TestContainerUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerInferenceUrl,
+					testutils.TestContainerHealthUri,
+					testutils.TestContainerPort,
+					testutils.TestContainerAPIFormat,
+					testutils.TestModel1Name,
+					testutils.TestModel1Version,
+					testutils.TestModel1Uri,
+					testutils.TestLogsTelemetryId,
+					testutils.TestMetricsTelemetryId,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
+
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "container_image", testutils.TestContainerUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestContainerInferenceUrl),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestContainerAPIFormat),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "0"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestContainerPort)),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.name", testutils.TestModel1Name),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.version", testutils.TestModel1Version),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "models.0.uri", testutils.TestModel1FullyQualifiedUri),
+
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.logs_telemetry_id", testutils.TestLogsTelemetryId),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "telemetries.metrics_telemetry_id", testutils.TestMetricsTelemetryId),
 				),
 				ExpectNonEmptyPlan: false,
 				PlanOnly:           true,
@@ -1278,7 +1571,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1340,6 +1633,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -1364,7 +1658,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -1426,6 +1720,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSucc
 
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name"),
+					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
@@ -1450,7 +1745,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSucc
 			// Verify Function Import
 			{
 				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateStateResourceId(testCloudFunctionResourceFullPath),
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
