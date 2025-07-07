@@ -69,7 +69,7 @@ func (d *NvidiaCloudFunctionTelemetryDataSource) Schema(ctx context.Context, req
 			},
 			"telemetry_provider": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, TIMESTREAM, VICTORIAMETRICS, AZURE_MONITOR)",
+				MarkdownDescription: "Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, AZURE_MONITOR)",
 			},
 			"types": schema.SetAttribute{
 				ElementType:         types.StringType,

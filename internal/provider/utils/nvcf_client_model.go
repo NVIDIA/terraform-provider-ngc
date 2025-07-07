@@ -89,7 +89,7 @@ type NvidiaCloudFunctionTelemetry struct {
 }
 
 type CreateNvidiaCloudFunctionTelemetryRequest struct {
-	Endpoint string                             `json:"endpoint,omitempty"`
+	Endpoint string                             `json:"endpoint"`
 	Protocol string                             `json:"protocol"`
 	Provider string                             `json:"provider"`
 	Types    []string                           `json:"types"`

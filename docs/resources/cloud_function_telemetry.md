@@ -20,7 +20,7 @@ NVIDIA Cloud Function Telemetry Resource
 - `endpoint` (String) URL for the telemetry endpoint
 - `protocol` (String) Protocol used for communication (HTTP or GRPC)
 - `secret` (Attributes) Secret configuration for the telemetry (see [below for nested schema](#nestedatt--secret))
-- `telemetry_provider` (String) Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, TIMESTREAM, VICTORIAMETRICS, AZURE_MONITOR)
+- `telemetry_provider` (String) Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, AZURE_MONITOR)
 - `types` (Set of String) Set of telemetry data types (LOGS, METRICS, TRACES)
 
 ### Read-Only

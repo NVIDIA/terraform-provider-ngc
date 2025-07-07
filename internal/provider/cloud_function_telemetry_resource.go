@@ -74,7 +74,7 @@ func (r *NvidiaCloudFunctionTelemetryResource) Schema(ctx context.Context, req r
 			},
 			"telemetry_provider": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, TIMESTREAM, VICTORIAMETRICS, AZURE_MONITOR)",
+				MarkdownDescription: "Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, AZURE_MONITOR)",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

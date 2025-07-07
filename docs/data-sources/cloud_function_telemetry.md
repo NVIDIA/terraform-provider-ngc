@@ -25,5 +25,5 @@ NVIDIA Cloud Function Telemetry Data Source
 - `endpoint` (String) URL for the telemetry endpoint
 - `name` (String) Telemetry name
 - `protocol` (String) Protocol used for communication (HTTP or GRPC)
-- `telemetry_provider` (String) Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, TIMESTREAM, VICTORIAMETRICS, AZURE_MONITOR)
+- `telemetry_provider` (String) Telemetry provider (PROMETHEUS, GRAFANA_CLOUD, SPLUNK, DATADOG, SERVICENOW, KRATOS, KRATOS_THANOS, AZURE_MONITOR)
 - `types` (Set of String) Set of telemetry data types (LOGS, METRICS, TRACES)
