@@ -190,6 +190,11 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
       EOF
     }
   ]
+  telemetries = {
+    logs_telemetry_id    = "953ff548-1188-43fd-82b5-fa856f562541"
+    metrics_telemetry_id = "953ff548-1188-43fd-82b5-fa856f562541"
+    traces_telemetry_id  = "953ff548-1188-43fd-82b5-fa856f562541"
+  }
   tags = [
     "test"
   ]

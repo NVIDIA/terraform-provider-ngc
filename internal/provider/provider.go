@@ -150,6 +150,7 @@ func (p *NgcProvider) Resources(ctx context.Context) []func() resource.Resource 
 func (p *NgcProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewNvidiaCloudFunctionDataSource,
+		NewNvidiaCloudFunctionTelemetryDataSource,
 	}
 }
 
