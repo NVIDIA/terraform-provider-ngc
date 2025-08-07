@@ -10,7 +10,6 @@ metadata:
   annotations:
     github.com/project-slug: NVIDIA/terraform-provider-ngc
     nvidia.com/nspect-id: "NSPECT-K76E-VNQ5"
-    backstage.io/techdocs-ref: dir:.
 spec:
   type: service
   pic: huaweic
