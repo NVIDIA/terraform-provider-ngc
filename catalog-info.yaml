@@ -1,0 +1,18 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform-provider-ngc
+  description: The NGC Provider enables Terraform to manage NGC (NVIDIA GPU Cloud) resources.
+  links:
+    - url: https://github.com/NVIDIA/terraform-provider-ngc/releases
+      title: Releases
+  annotations:
+    github.com/project-slug: NVIDIA/terraform-provider-ngc
+    nvidia.com/nspect-id: "NSPECT-K76E-VNQ5"
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: service
+  pic: huaweic
+  owner: group:default/nvcf-cds-team
+  lifecycle: production
