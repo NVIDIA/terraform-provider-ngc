@@ -1298,7 +1298,7 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 				NgcTeam:     tt.fields.NgcTeam,
 				HttpClient:  tt.fields.HttpClient,
 			}
-			gotResp, err := c.DeleteNvidiaCloudFunctionDeployment(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID)
+			gotResp, err := c.DeleteNvidiaCloudFunctionDeployment(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID, true)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NVCFClient.DeleteNvidiaCloudFunctionDeployment() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -49,7 +49,7 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 
 	// Build URL with query parameters if provided
 	finalURL := requestURL
-	if queryParams != nil && len(queryParams) > 0 {
+	if len(queryParams) > 0 {
 		u, err := url.Parse(requestURL)
 		if err != nil {
 			tflog.Error(ctx, fmt.Sprintf("failed to parse URL %s", requestURL))
@@ -133,7 +133,7 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	return err
 }
 
-// Helper function to build query parameters map
+// Helper function to build query parameters map.
 func BuildQueryParams(params ...string) map[string]string {
 	if len(params)%2 != 0 {
 		// If odd number of parameters, ignore the last one
@@ -147,8 +147,8 @@ func BuildQueryParams(params ...string) map[string]string {
 	return queryParams
 }
 
-// Example function showing how to use query parameters
-// This could be used for paginated listing or filtering
+// Example function showing how to use query parameters.
+// This could be used for paginated listing or filtering.
 func (c *NVCFClient) ListNvidiaCloudFunctionVersionsWithQuery(ctx context.Context, functionID string, limit int, offset int) (resp *ListNvidiaCloudFunctionVersionsResponse, err error) {
 	var listNvidiaCloudFunctionVersionsResponse ListNvidiaCloudFunctionVersionsResponse
 
