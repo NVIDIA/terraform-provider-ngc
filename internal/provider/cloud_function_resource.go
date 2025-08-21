@@ -701,6 +701,12 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"graceful_deletion": schema.BoolAttribute{
+				MarkdownDescription: "Enable graceful deletion of the function. Default is \"false\"",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
 				Update: true,
@@ -1070,7 +1076,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 	}
 
 	if len(plan.DeploymentSpecifications.Elements()) == 0 {
-		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, state.Id.ValueString(), state.VersionID.ValueString())
+		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, state.Id.ValueString(), state.VersionID.ValueString(), plan.GracefulDeletion.ValueBool())
 		// The case we still save state, since the deployment is disabled and user can delete the version manually.
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -1097,6 +1103,17 @@ func (r *NvidiaCloudFunctionResource) Delete(ctx context.Context, req resource.D
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if data.GracefulDeletion.ValueBool() {
+		_, err := r.client.DeleteNvidiaCloudFunctionDeployment(ctx, data.Id.ValueString(), data.VersionID.ValueString(), data.GracefulDeletion.ValueBool())
+		// The case we still save state, since the deployment is disabled and user can delete the version manually.
+		if err != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Failed to delete Cloud Function Deployment %s", data.VersionID.ValueString()),
+				err.Error(),
+			)
+		}
+	}
 
 	err := r.client.DeleteNvidiaCloudFunctionVersion(ctx, data.Id.ValueString(), data.VersionID.ValueString())
 	if err != nil {

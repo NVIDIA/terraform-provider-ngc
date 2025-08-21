@@ -111,4 +111,5 @@ type NvidiaCloudFunctionResourceModel struct {
 	Secrets                  types.Set      `tfsdk:"secrets"`
 	AuthorizedParties        types.Set      `tfsdk:"authorized_parties"`
 	Telemetries              types.Object   `tfsdk:"telemetries"`
+	GracefulDeletion         types.Bool     `tfsdk:"graceful_deletion"`
 }

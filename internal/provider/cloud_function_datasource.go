@@ -58,6 +58,7 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	FunctionType             types.String                            `tfsdk:"function_type"`
 	AuthorizedParties        types.Set                               `tfsdk:"authorized_parties"`
 	Telemetries              types.Object                            `tfsdk:"telemetries"`
+	GracefulDeletion         types.Bool                              `tfsdk:"graceful_deletion"`
 }
 
 func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel(
@@ -222,6 +223,10 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 		diag.Append(telemetriesObjectTypeDiag...)
 		data.Telemetries = telemetriesObjectType
 	}
+
+	// Set default value for graceful_deletion since it's not returned by the API
+	// This ensures the field has a consistent value when not specified in configuration
+	data.GracefulDeletion = types.BoolValue(false)
 }
 
 func (d *NvidiaCloudFunctionDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -307,6 +312,11 @@ func (d *NvidiaCloudFunctionDataSource) Schema(ctx context.Context, req datasour
 			},
 			"deployment_specifications": deploymentSpecificationsSchema(),
 			"telemetries":               telemetriesSchema(),
+			"graceful_deletion": schema.BoolAttribute{
+				MarkdownDescription: "Enable graceful deletion of the function. Default is \"false\"",
+				Optional:            true,
+				Computed:            true,
+			},
 		},
 	}
 }

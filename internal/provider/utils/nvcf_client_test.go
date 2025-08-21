@@ -18,9 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1304,5 +1307,160 @@ func TestNVCFClient_DeleteNvidiaCloudFunctionDeployment(t *testing.T) {
 				t.Errorf("NVCFClient.DeleteNvidiaCloudFunctionDeployment() = %v, want %v", gotResp, tt.wantResp)
 			}
 		})
+	}
+}
+
+// Test the BuildQueryParams helper function
+func TestBuildQueryParams(t *testing.T) {
+	// Test with even number of parameters
+	params := BuildQueryParams("key1", "value1", "key2", "value2")
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	}
+	if params["key1"] != "value1" {
+		t.Errorf("Expected key1=value1, got key1=%s", params["key1"])
+	}
+	if params["key2"] != "value2" {
+		t.Errorf("Expected key2=value2, got key2=%s", params["key2"])
+	}
+
+	// Test with odd number of parameters (should ignore last one)
+	params = BuildQueryParams("key1", "value1", "key2", "value2", "key3")
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters with odd input, got %d", len(params))
+	}
+
+	// Test with empty parameters
+	params = BuildQueryParams()
+	if len(params) != 0 {
+		t.Errorf("Expected 0 parameters with empty input, got %d", len(params))
+	}
+}
+
+// Mock HTTP client for testing query parameter functionality
+type MockRoundTripper struct {
+	Response *http.Response
+	Request  *http.Request
+}
+
+func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.Request = req // Capture the request for inspection
+	return m.Response, nil
+}
+
+// Test that query parameters are correctly added to requests
+func TestSendRequestWithQueryParams(t *testing.T) {
+	// Create a mock response
+	mockResponse := &http.Response{
+		StatusCode: 200,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(`{"success": true}`)),
+	}
+
+	// Create a mock round tripper
+	mockRT := &MockRoundTripper{Response: mockResponse}
+
+	// Create NVCF client with mock HTTP client
+	client := &NVCFClient{
+		NgcEndpoint: "https://api.ngc.nvidia.com",
+		NgcApiKey:   "test-key",
+		NgcOrg:      "test-org",
+		NgcTeam:     "",
+		HttpClient: &http.Client{
+			Transport: mockRT,
+		},
+	}
+
+	ctx := context.Background()
+	queryParams := map[string]string{
+		"limit":  "10",
+		"offset": "0",
+		"filter": "active",
+	}
+
+	// Make a request with query parameters
+	err := client.sendRequest(
+		ctx,
+		"https://api.ngc.nvidia.com/v2/orgs/test-org/nvcf/functions",
+		http.MethodGet,
+		nil,
+		nil,
+		map[int]bool{200: true},
+		queryParams,
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Check that the request URL includes the query parameters
+	if mockRT.Request == nil {
+		t.Fatal("Request was not captured")
+	}
+
+	parsedURL, err := url.Parse(mockRT.Request.URL.String())
+	if err != nil {
+		t.Fatalf("Failed to parse request URL: %v", err)
+	}
+
+	query := parsedURL.Query()
+	if query.Get("limit") != "10" {
+		t.Errorf("Expected limit=10, got limit=%s", query.Get("limit"))
+	}
+	if query.Get("offset") != "0" {
+		t.Errorf("Expected offset=0, got offset=%s", query.Get("offset"))
+	}
+	if query.Get("filter") != "active" {
+		t.Errorf("Expected filter=active, got filter=%s", query.Get("filter"))
+	}
+}
+
+// Test that requests work without query parameters (backward compatibility)
+func TestSendRequestWithoutQueryParams(t *testing.T) {
+	// Create a mock response
+	mockResponse := &http.Response{
+		StatusCode: 200,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(`{"success": true}`)),
+	}
+
+	// Create a mock round tripper
+	mockRT := &MockRoundTripper{Response: mockResponse}
+
+	// Create NVCF client with mock HTTP client
+	client := &NVCFClient{
+		NgcEndpoint: "https://api.ngc.nvidia.com",
+		NgcApiKey:   "test-key",
+		NgcOrg:      "test-org",
+		NgcTeam:     "",
+		HttpClient: &http.Client{
+			Transport: mockRT,
+		},
+	}
+
+	ctx := context.Background()
+
+	// Make a request without query parameters (nil)
+	err := client.sendRequest(
+		ctx,
+		"https://api.ngc.nvidia.com/v2/orgs/test-org/nvcf/functions",
+		http.MethodGet,
+		nil,
+		nil,
+		map[int]bool{200: true},
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Check that the request URL doesn't have query parameters
+	if mockRT.Request == nil {
+		t.Fatal("Request was not captured")
+	}
+
+	if mockRT.Request.URL.RawQuery != "" {
+		t.Errorf("Expected no query parameters, got: %s", mockRT.Request.URL.RawQuery)
 	}
 }
