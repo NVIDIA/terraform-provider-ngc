@@ -194,6 +194,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 								}
 							]
 							tags = ["%s","%s"]
+							graceful_deletion = true
 						}
 						`,
 					testCloudFunctionResourceName,
@@ -461,11 +462,13 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 			},
 			// Verify Function Import
 			{
-				ResourceName:            testCloudFunctionResourceFullPath,
-				ImportStateIdFunc:       generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ResourceName:      testCloudFunctionResourceFullPath,
+				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"graceful_deletion", // Not assigned when import
+				},
 			},
 		},
 	})
@@ -667,7 +670,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -951,7 +955,8 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"secrets", // Won't retrieve from API.
+					"secrets",           // Won't retrieve from API.
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -1142,7 +1147,8 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import,
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -1269,7 +1275,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -1575,7 +1582,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -1662,7 +1670,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
@@ -1749,7 +1758,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSucc
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"function_id", // Not assigned when import
+					"function_id",       // Not assigned when import
+					"graceful_deletion", // Not assigned when import
 				},
 			},
 		},
