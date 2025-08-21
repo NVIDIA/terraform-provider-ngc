@@ -31,6 +31,7 @@ Nvidia Cloud Function Data Source
 - `description` (String) Description of the function
 - `function_name` (String) Function name
 - `function_type` (String) Optional function type, used to indicate a STREAMING function. Defaults is "DEFAULT".
+- `graceful_deletion` (Boolean) Enable graceful deletion of the function. Default is "false"
 - `health` (Attributes) (see [below for nested schema](#nestedatt--health))
 - `health_uri` (String, Deprecated) Service health endpoint Path. Default is "/v2/health/ready"
 - `helm_chart` (String) Helm chart registry uri
