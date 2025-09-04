@@ -68,6 +68,8 @@ type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
 	MaxRequestConcurrency types.Int64  `tfsdk:"max_request_concurrency"`
 	Configuration         types.String `tfsdk:"configuration"`
 	InstanceType          types.String `tfsdk:"instance_type"`
+	Clusters              types.Set    `tfsdk:"clusters"`
+	Regions               types.Set    `tfsdk:"regions"`
 }
 
 type NvidiaCloudFunctionTelemetryModel struct {

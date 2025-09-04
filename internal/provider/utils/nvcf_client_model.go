@@ -189,6 +189,8 @@ type NvidiaCloudFunctionDeploymentSpecification struct {
 	MinInstances          int         `json:"minInstances"`
 	MaxRequestConcurrency int         `json:"maxRequestConcurrency"`
 	Configuration         interface{} `json:"configuration"`
+	Clusters              []string    `json:"clusters"`
+	Regions               []string    `json:"regions"`
 }
 
 type NvidiaCloudFunctionDeployment struct {

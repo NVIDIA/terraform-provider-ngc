@@ -38,9 +38,8 @@ func generateFunctionStateResourceId(resourceName string) resource.ImportStateId
 	}
 }
 
-func TeTestAccCloudFunctionResource_CreateHelmBasedFunctionFailures(t *testing.T) {
-	var functionName = "TeTestAccCloudFunctionResource_HelmBasedFunction_Failures"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
+func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "helm-based-function-fail"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -79,7 +78,7 @@ func TeTestAccCloudFunctionResource_CreateHelmBasedFunctionFailures(t *testing.T
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -128,7 +127,7 @@ func TeTestAccCloudFunctionResource_CreateHelmBasedFunctionFailures(t *testing.T
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -148,10 +147,9 @@ func TeTestAccCloudFunctionResource_CreateHelmBasedFunctionFailures(t *testing.T
 	})
 }
 
-func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionDeployWithBackendOptionSuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "helm-based-function-with-backend-option"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -197,7 +195,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 							graceful_deletion = true
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -285,7 +283,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -366,7 +364,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 										}
 									}
 									`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -412,7 +410,7 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 										]
 									}
 									`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestHelmUri,
 					testutils.TestHelmServiceName,
@@ -474,10 +472,9 @@ func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionSuccess(t *tes
 	})
 }
 
-func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithClustersOptionSuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "helm-based-function-version-with-clusters-option"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	functionInfo := testutils.CreateHelmFunction(t)
 	defer testutils.DeleteFunction(t, functionInfo.Function.ID, functionInfo.Function.VersionID)
@@ -507,8 +504,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 							deployment_specifications = [
 								{
 									configuration           = "%s"
-									backend                 = "%s"
 									instance_type           = "%s"
+									clusters                = ["%s", "%s"]
 									gpu_type                = "%s"
 									max_instances           = 1
 									min_instances           = 1
@@ -517,7 +514,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					functionInfo.Function.ID,
 					testutils.TestHelmUri,
@@ -528,8 +525,9 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
 					testutils.TestInstanceType,
+					testutils.TestClusters[0],
+					testutils.TestClusters[1],
 					testutils.TestGpuType,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -554,7 +552,9 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.0", testutils.TestClusters[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.1", testutils.TestClusters[1]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
@@ -591,7 +591,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 							deployment_specifications = [
 								{
 									configuration           = "%s"
-									backend                 = "%s"
+									clusters                = ["%s", "%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 2
@@ -609,7 +609,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					functionInfo.Function.ID,
 					testutils.TestHelmUri,
@@ -620,7 +620,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
+					testutils.TestClusters[0],
+					testutils.TestClusters[1],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 					testutils.TestAuthorizedParty1,
@@ -678,10 +679,9 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionSuccess(t *testi
 	})
 }
 
-func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+func TestAccCloudFunctionResource_CreateContainerBasedFunctionDeployWithBackendOptionSuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "container-based-function-with-backend-option"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -757,7 +757,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -884,7 +884,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -963,10 +963,9 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionSuccess(t *testing
 	})
 }
 
-func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeployWithClustersAndRegionOptionsSuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "container-based-function-version-with-clusters-and-region-options"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	functionInfo := testutils.CreateContainerFunction(t)
 	defer testutils.DeleteFunction(t, functionInfo.Function.ID, functionInfo.Function.VersionID)
@@ -994,7 +993,8 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
-									backend                 = "%s"
+									clusters                = ["%s", "%s"]
+									regions                 = ["%s", "%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 1
@@ -1004,7 +1004,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					functionInfo.Function.ID,
 					testutils.TestContainerUri,
@@ -1013,7 +1013,10 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 					testutils.TestContainerHealthUri,
 					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
-					testutils.TestBackend,
+					testutils.TestClusters[0],
+					testutils.TestClusters[1],
+					testutils.TestRegions[0],
+					testutils.TestRegions[1],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 				),
@@ -1036,7 +1039,12 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.0", testutils.TestClusters[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.1", testutils.TestClusters[1]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.0", testutils.TestRegions[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.1", testutils.TestRegions[1]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
@@ -1071,7 +1079,8 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 							api_body_format         = "%s"
 							deployment_specifications = [
 								{
-									backend                 = "%s"
+									clusters                = ["%s", "%s"]
+									regions                 = ["%s", "%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 2
@@ -1089,7 +1098,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					functionInfo.Function.ID,
 					testutils.TestContainerUri,
@@ -1098,7 +1107,10 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 					testutils.TestContainerHealthUri,
 					testutils.TestContainerPort,
 					testutils.TestContainerAPIFormat,
-					testutils.TestBackend,
+					testutils.TestClusters[0],
+					testutils.TestClusters[1],
+					testutils.TestRegions[0],
+					testutils.TestRegions[1],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 					testutils.TestAuthorizedParty1,
@@ -1124,7 +1136,12 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.0", testutils.TestClusters[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.1", testutils.TestClusters[1]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.0", testutils.TestRegions[0]),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.regions.1", testutils.TestRegions[1]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
@@ -1156,9 +1173,8 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionSuccess(t *
 }
 
 func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+	var functionName = testutils.TestCommonPrefix + "function-without-deployment"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1189,7 +1205,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1253,7 +1269,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1284,9 +1300,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithoutDeploymentSuccess(t *test
 }
 
 func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeploymentSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeploymentSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+	var functionName = testutils.TestCommonPrefix + "function-with-telemetries-without-deployment"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1321,7 +1336,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1389,7 +1404,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1458,7 +1473,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1530,7 +1545,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 							}
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1591,9 +1606,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithTelemetriesWithoutDeployment
 }
 
 func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFormatSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFormatSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+	var functionName = testutils.TestCommonPrefix + "function-with-fully-quailfied-artifacts-url-format"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1624,7 +1638,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,
@@ -1679,9 +1693,8 @@ func TestAccCloudFunctionResource_CreateFunctionWithFullyQuailfiedArtifactsUrlFo
 }
 
 func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSuccess(t *testing.T) {
-	var functionName = "TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSuccess"
-	var testCloudFunctionResourceName = fmt.Sprintf("terraform-cloud-function-integ-resource-%s", functionName)
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", testCloudFunctionResourceName)
+	var functionName = testutils.TestCommonPrefix + "function-with-legacy-artifact-urls-format"
+	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1712,7 +1725,7 @@ func TestAccCloudFunctionResource_CreateFunctionWithLegacyArtifactUrlsFormatSucc
 							]
 						}
 						`,
-					testCloudFunctionResourceName,
+					functionName,
 					functionName,
 					testutils.TestContainerUri,
 					testutils.TestContainerPort,

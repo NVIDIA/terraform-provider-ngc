@@ -25,11 +25,13 @@ import (
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/utils"
 )
 
+const (
+	TestCommonPrefix = "tf-test-"
+)
+
 var TestNGCClient *utils.NGCClient
 var TestNVCFClient *utils.NVCFClient
 var Ctx = context.Background()
-
-const resourcePrefix = "terraform-provider-integ"
 
 var TestNcaID string
 var TestFunctionType string
@@ -67,6 +69,9 @@ var TestSecretNames []string
 var TestAuthorizedParty1 string
 var TestAuthorizedParty2 string
 
+var TestClusters []string
+var TestRegions []string
+
 var TestLogsTelemetryId string
 var TestMetricsTelemetryId string
 
@@ -91,7 +96,7 @@ func init() {
 	// Setup Test Data
 
 	// Helm-Base Function
-	TestHelmFunctionName = fmt.Sprintf("%s-helm-function-01", resourcePrefix)
+	TestHelmFunctionName = fmt.Sprintf("%shelm-function-01", TestCommonPrefix)
 	TestHelmUri = os.Getenv("HELM_URI")
 	TestHelmServiceName = os.Getenv("HELM_SERVICE_NAME")
 	TestHelmServicePort, _ = strconv.Atoi(os.Getenv("HELM_SERVICE_PORT"))
@@ -102,7 +107,7 @@ func init() {
 	TestHelmAPIFormat = "CUSTOM"
 
 	// Container-Base Function
-	TestContainerFunctionName = fmt.Sprintf("%s-container-function-01", resourcePrefix)
+	TestContainerFunctionName = fmt.Sprintf("%scontainer-function-01", TestCommonPrefix)
 	TestContainerUri = os.Getenv("CONTAINER_URI")
 	TestContainerPort, _ = strconv.Atoi(os.Getenv("CONTAINER_PORT"))
 	TestContainerInferenceUrl = os.Getenv("CONTAINER_INFERENCE_URL")
@@ -115,6 +120,8 @@ func init() {
 		},
 	}
 	TestBackend = os.Getenv("BACKEND")
+	TestClusters = []string{os.Getenv("CLUSTER_1"), os.Getenv("CLUSTER_2")}
+	TestRegions = []string{os.Getenv("CLUSTER_1_REGION"), os.Getenv("CLUSTER_2_REGION")}
 	TestInstanceType = os.Getenv("INSTANCE_TYPE")
 	TestGpuType = os.Getenv("GPU_TYPE")
 	TestFunctionType = "DEFAULT"

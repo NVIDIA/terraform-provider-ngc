@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/testutils"
 )
 
 const (
@@ -64,7 +65,7 @@ func generateFunctionTelemetryStateResourceId(resourceName string) resource.Impo
 }
 
 func TestAccCloudFunctionTelemetryResource_CreateAndUpdateAndDeleteTelemetrySuccess(t *testing.T) {
-	var telemetryName = "TestAccCloudFunctionTelemetryResource_Success"
+	var telemetryName = testutils.TestCommonPrefix + "telemetry-resource"
 	var testCloudFunctionTelemetryResourceFullPath = fmt.Sprintf("ngc_cloud_function_telemetry.%s", telemetryName)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -123,7 +124,7 @@ func TestAccCloudFunctionTelemetryResource_CreateAndUpdateAndDeleteTelemetrySucc
 }
 
 func TestAccCloudFunctionTelemetryResource_Fail(t *testing.T) {
-	var telemetryName = "TestAccCloudFunctionTelemetryResource_Fail"
+	var telemetryName = testutils.TestCommonPrefix + "telemetry-resource-fail"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

@@ -82,7 +82,9 @@ Required:
 Optional:
 
 - `backend` (String) NVCF Backend.
+- `clusters` (Set of String) Specific clusters within spot instance or worker node powered by the selected instance-type to deploy function.
 - `configuration` (String) Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions
+- `regions` (Set of String) List of regions allowed to deploy. The instance or worker node will be in one of the specified geographical regions.
 
 
 <a id="nestedatt--health"></a>

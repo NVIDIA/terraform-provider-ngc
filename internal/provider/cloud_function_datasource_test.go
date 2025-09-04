@@ -22,7 +22,7 @@ import (
 	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/testutils"
 )
 
-var testCloudFunctionDatasourceName = "terraform-cloud-function-integ-datasource"
+var testCloudFunctionDatasourceName = testutils.TestCommonPrefix + "datasource"
 var testCloudFunctionDatasourceFullPath = fmt.Sprintf("data.ngc_cloud_function.%s", testCloudFunctionDatasourceName)
 
 func TestAccCloudFunctionDataSource_HelmBasedFunction(t *testing.T) {
