@@ -18,14 +18,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"gitlab-master.nvidia.com/nvb/core/terraform-provider-ngc/internal/provider/testutils"
 )
 
-var testCloudFunctionTelemetryDatasourceName = "terraform-cloud-function-telemetry-datasource"
+var testCloudFunctionTelemetryDatasourceName = testutils.TestCommonPrefix + "telemetry-datasource"
 var testCloudFunctionTelemetryDatasourceFullPath = fmt.Sprintf("data.ngc_cloud_function_telemetry.%s", testCloudFunctionTelemetryDatasourceName)
 
 func TestAccCloudFunctionTelemetryDataSource_Success(t *testing.T) {
-	var telemetryResourceName = "terraform-cloud-function-telemetry-resource"
-	var testCloudFunctionTelemetryResourceFullPath = fmt.Sprintf("ngc_cloud_function_telemetry.%s", telemetryResourceName)
+	var telemetryDatasourceName = testutils.TestCommonPrefix + "telemetry-datasource"
+	var testCloudFunctionTelemetryResourceFullPath = fmt.Sprintf("ngc_cloud_function_telemetry.%s", telemetryDatasourceName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -47,10 +48,10 @@ func TestAccCloudFunctionTelemetryDataSource_Success(t *testing.T) {
 					data "ngc_cloud_function_telemetry" "%s" {
 						id = ngc_cloud_function_telemetry.%s.id
 					}
-				`, telemetryResourceName, TELEMETRY_ENDPOINT, TELEMETRY_PROTOCOL, TELEMETRY_PROVIDER, TELEMETRY_TYPES[0], TELEMETRY_TYPES[1], telemetryResourceName, testCloudFunctionTelemetryDatasourceName, telemetryResourceName),
+				`, telemetryDatasourceName, TELEMETRY_ENDPOINT, TELEMETRY_PROTOCOL, TELEMETRY_PROVIDER, TELEMETRY_TYPES[0], TELEMETRY_TYPES[1], telemetryDatasourceName, testCloudFunctionTelemetryDatasourceName, telemetryDatasourceName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Check resource attributes
-					resource.TestCheckResourceAttr(testCloudFunctionTelemetryResourceFullPath, "name", telemetryResourceName),
+					resource.TestCheckResourceAttr(testCloudFunctionTelemetryResourceFullPath, "name", telemetryDatasourceName),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryResourceFullPath, "endpoint", TELEMETRY_ENDPOINT),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryResourceFullPath, "protocol", TELEMETRY_PROTOCOL),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryResourceFullPath, "telemetry_provider", TELEMETRY_PROVIDER),
@@ -59,7 +60,7 @@ func TestAccCloudFunctionTelemetryDataSource_Success(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(testCloudFunctionTelemetryResourceFullPath, "types.*", TELEMETRY_TYPES[1]),
 
 					// Check datasource attributes
-					resource.TestCheckResourceAttr(testCloudFunctionTelemetryDatasourceFullPath, "name", telemetryResourceName),
+					resource.TestCheckResourceAttr(testCloudFunctionTelemetryDatasourceFullPath, "name", telemetryDatasourceName),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryDatasourceFullPath, "endpoint", TELEMETRY_ENDPOINT),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryDatasourceFullPath, "protocol", TELEMETRY_PROTOCOL),
 					resource.TestCheckResourceAttr(testCloudFunctionTelemetryDatasourceFullPath, "telemetry_provider", TELEMETRY_PROVIDER),

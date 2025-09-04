@@ -118,12 +118,31 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 		for _, v := range functionDeployment.DeploymentSpecifications {
 			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
-				Backend:               types.StringValue(v.Backend),
 				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
 				MaxInstances:          types.Int64Value(int64(v.MaxInstances)),
 				MinInstances:          types.Int64Value(int64(v.MinInstances)),
 				MaxRequestConcurrency: types.Int64Value(int64(v.MaxRequestConcurrency)),
+			}
+
+			if v.Backend != "" {
+				deploymentSpecification.Backend = types.StringValue(v.Backend)
+			}
+
+			if v.Clusters != nil {
+				clusters, clustersSetFromDiag := types.SetValueFrom(ctx, types.StringType, v.Clusters)
+				diag.Append(clustersSetFromDiag...)
+				deploymentSpecification.Clusters = clusters
+			} else {
+				deploymentSpecification.Clusters = types.SetNull(types.StringType)
+			}
+
+			if v.Regions != nil {
+				regions, regionsSetFromDiag := types.SetValueFrom(ctx, types.StringType, v.Regions)
+				diag.Append(regionsSetFromDiag...)
+				deploymentSpecification.Regions = regions
+			} else {
+				deploymentSpecification.Regions = types.SetNull(types.StringType)
 			}
 
 			if v.Configuration != nil {
@@ -345,23 +364,14 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 				"backend": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend.",
 					Optional:            true,
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.RequiresReplace(),
-					},
 				},
 				"instance_type": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend Instance Type.",
 					Required:            true,
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.RequiresReplace(),
-					},
 				},
 				"gpu_type": schema.StringAttribute{
 					MarkdownDescription: "GPU Type, GFN backend default is L40",
 					Required:            true,
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.RequiresReplace(),
-					},
 				},
 				"max_instances": schema.Int64Attribute{
 					MarkdownDescription: "Max Instances Count",
@@ -374,6 +384,22 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 				"max_request_concurrency": schema.Int64Attribute{
 					MarkdownDescription: "Max Concurrency Count",
 					Required:            true,
+				},
+				"clusters": schema.SetAttribute{
+					ElementType:         types.StringType,
+					MarkdownDescription: "Specific clusters within spot instance or worker node powered by the selected instance-type to deploy function.",
+					Optional:            true,
+					PlanModifiers: []planmodifier.Set{
+						setplanmodifier.RequiresReplace(),
+					},
+				},
+				"regions": schema.SetAttribute{
+					ElementType:         types.StringType,
+					MarkdownDescription: "List of regions allowed to deploy. The instance or worker node will be in one of the specified geographical regions.",
+					Optional:            true,
+					PlanModifiers: []planmodifier.Set{
+						setplanmodifier.RequiresReplace(),
+					},
 				},
 			},
 		},
@@ -1185,6 +1211,23 @@ func (r *NvidiaCloudFunctionResource) prepareDeploymentSpecifications(
 			MinInstances:          int(v.MinInstances.ValueInt64()),
 			MaxRequestConcurrency: int(v.MaxRequestConcurrency.ValueInt64()),
 			Configuration:         configuration,
+		}
+
+		if !v.Clusters.IsNull() {
+			var clusters []string
+			diag.Append(v.Clusters.ElementsAs(ctx, &clusters, false)...)
+			if diag.HasError() {
+				return nil
+			}
+			d.Clusters = clusters
+		}
+		if !v.Regions.IsNull() {
+			var regions []string
+			diag.Append(v.Regions.ElementsAs(ctx, &regions, false)...)
+			if diag.HasError() {
+				return nil
+			}
+			d.Regions = regions
 		}
 		deploymentSpecificationsOption = append(deploymentSpecificationsOption, d)
 	}

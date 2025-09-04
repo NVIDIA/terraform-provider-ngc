@@ -135,6 +135,22 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 				deploymentSpecification.Configuration = types.StringValue(string(configuration))
 			}
 
+			if v.Clusters != nil {
+				clusters, clustersSetFromDiag := types.SetValueFrom(ctx, types.StringType, v.Clusters)
+				diag.Append(clustersSetFromDiag...)
+				deploymentSpecification.Clusters = clusters
+			} else {
+				deploymentSpecification.Clusters = types.SetNull(types.StringType)
+			}
+
+			if v.Regions != nil {
+				regions, regionsSetFromDiag := types.SetValueFrom(ctx, types.StringType, v.Regions)
+				diag.Append(regionsSetFromDiag...)
+				deploymentSpecification.Regions = regions
+			} else {
+				deploymentSpecification.Regions = types.SetNull(types.StringType)
+			}
+
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
 		deploymentSpecificationsListType, deploymentSpecificationsListTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
