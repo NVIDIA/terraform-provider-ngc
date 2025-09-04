@@ -11,6 +11,7 @@ testacc:
 
 test:
 	echo "Starting unittest..." && \
+	export TEST_ENV_FILE=$(TEST_ENV_FILE) && \
 	gotestsum --junitfile report_ut.xml -- -coverprofile=coverage_ut.out -tags=unittest $(TESTARGS) $(PROVIDER_SRC_DIR) -v
 
 generate_doc:
