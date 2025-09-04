@@ -79,7 +79,7 @@ func init() {
 	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
 
 	if err != nil {
-		log.Fatal("Error loading test config file")
+		log.Fatal("Error loading test config file", err)
 	}
 
 	TestNGCClient = &utils.NGCClient{
