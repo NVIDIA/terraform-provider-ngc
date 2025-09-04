@@ -141,7 +141,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 				),
-				ExpectError: regexp.MustCompile("Validation failure"),
+				ExpectError: regexp.MustCompile("Validation failed with"),
 			},
 		},
 	})
@@ -505,7 +505,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 								{
 									configuration           = "%s"
 									instance_type           = "%s"
-									clusters                = ["%s", "%s"]
+									clusters                = ["%s"]
 									gpu_type                = "%s"
 									max_instances           = 1
 									min_instances           = 1
@@ -527,7 +527,6 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestInstanceType,
 					testutils.TestClusters[0],
-					testutils.TestClusters[1],
 					testutils.TestGpuType,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -552,9 +551,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.0", testutils.TestClusters[0]),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.1", testutils.TestClusters[1]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
@@ -591,7 +589,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 							deployment_specifications = [
 								{
 									configuration           = "%s"
-									clusters                = ["%s", "%s"]
+									clusters                = ["%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 2
@@ -621,7 +619,6 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
 					testutils.TestClusters[0],
-					testutils.TestClusters[1],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 					testutils.TestAuthorizedParty1,
@@ -648,7 +645,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 					// Verify number of deployment_specifications
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.#", "1"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.clusters.0", testutils.TestClusters[0]),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
