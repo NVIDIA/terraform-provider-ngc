@@ -1,0 +1,260 @@
+# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-NvidiaProprietary
+
+# NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+# property and proprietary rights in and to this material, related
+# documentation and any modifications thereto. Any use, reproduction,
+# disclosure or distribution of this material and related documentation
+# without an express license agreement from NVIDIA CORPORATION or
+# its affiliates is strictly prohibited.
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Prevent duplicate runs on PR and push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.24'
+  GOLANGCI_LINT_VERSION: 'v2.8.0'
+  GORELEASER_VERSION: 'v2.2.0'
+  TEST_REPORT_FILE: report.xml
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write         # Required for dorny/test-reporter
+  security-events: write  # Required for SARIF upload
+
+jobs:
+  # =============================================================================
+  # Stage: Test
+  # =============================================================================
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+  unit-test:
+    name: Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests
+        env:
+          NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
+        run: make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=${{ env.TEST_REPORT_FILE }} test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            coverage_ut.out
+            report_ut.xml
+          retention-days: 30
+
+      - name: Upload test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit Test Results
+          path: report_ut.xml
+          reporter: java-junit
+          fail-on-error: true
+
+  # =============================================================================
+  # Stage: Build
+  # =============================================================================
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, unit-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for goreleaser to work properly
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: ${{ env.GORELEASER_VERSION }}
+          install-only: true
+
+      - name: Build snapshot
+        run: goreleaser release --clean --snapshot --skip=publish,announce,sign
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/*.zip
+          retention-days: 7
+
+  # =============================================================================
+  # Stage: Scan
+  # =============================================================================
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          skip-dirs: 'vendor,node_modules,dist'
+
+      - name: Upload Trivy SARIF report
+        uses: github/codeql-action/upload-sarif@v4.31.5
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@v3.91.1
+        with:
+          path: ./
+          extra_args: --only-verified
+
+  # =============================================================================
+  # Stage: Integration Test
+  # =============================================================================
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [lint, unit-test, build, security-scan]
+    environment: integration-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run acceptance tests
+        env:
+          NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
+        run: make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=${{ env.TEST_REPORT_FILE }} testacc
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            coverage_acc.out
+            report_acc.xml
+          retention-days: 30
+
+      - name: Upload test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Integration Test Results
+          path: report_acc.xml
+          reporter: java-junit
+          fail-on-error: true
+
+  # =============================================================================
+  # Summary
+  # =============================================================================
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, unit-test, integration-test, build, security-scan]
+    if: always()
+    steps:
+      - name: Check job results
+        run: |
+          echo "## 🎯 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Test | ${{ needs.unit-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Test | ${{ needs.integration-test.result == 'success' && '✅ Passed' || (needs.integration-test.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅ Passed' || (needs.security-scan.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📌 Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "🔀 Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any required job failed
+        if: |
+          needs.lint.result == 'failure' ||
+          needs.unit-test.result == 'failure' ||
+          needs.integration-test.result == 'failure' ||
+          needs.build.result == 'failure'
+        run: exit 1

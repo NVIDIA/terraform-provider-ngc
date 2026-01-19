@@ -48,28 +48,29 @@ checksum:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-signs:
-  - artifacts: checksum
-    cmd: nvsec
-    signature: "${artifact}.sig"
-    args:
-      - 3s
-      - submit
-      - --job_type
-      - NGC_TF_PROVIDER
-      - --input_file
-      - "${artifact}"
-      - --description
-      - "CI Generate"
-      - --client_id
-      - "{{ .Env.CODE_SIGN_SSA_CLIENT_ID }}"
-      - --client_secret
-      - "{{ .Env.CODE_SIGN_SSA_CLIENT_SECRET }}"
-      - --scope
-      - SIGNING_NGC_TF_PROVIDER
-      - --download
-      - --result_filename
-      - ${signature}
+# FIXME: Bring back once we fix the code signing dependency issue.
+# signs:
+#   - artifacts: checksum
+#     cmd: nvsec
+#     signature: "${artifact}.sig"
+#     args:
+#       - 3s
+#       - submit
+#       - --job_type
+#       - NGC_TF_PROVIDER
+#       - --input_file
+#       - "${artifact}"
+#       - --description
+#       - "CI Generate"
+#       - --client_id
+#       - "{{ .Env.CODE_SIGN_SSA_CLIENT_ID }}"
+#       - --client_secret
+#       - "{{ .Env.CODE_SIGN_SSA_CLIENT_SECRET }}"
+#       - --scope
+#       - SIGNING_NGC_TF_PROVIDER
+#       - --download
+#       - --result_filename
+#       - ${signature}
 release:
   github:
     owner: NVIDIA
