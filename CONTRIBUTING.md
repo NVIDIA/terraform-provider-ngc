@@ -1,35 +1,114 @@
 
-## NGC Terraform Provider Contribution Rules
+### NGC Terraform Provider Contribution Rules
 
 #### Issue Tracking
 
 * All enhancement, bugfix, or change requests must begin with the creation of a [NGC Terraform Provider Issue Request](https://github.com/nvidia/ngc-terraform-provider/issues).
 
+#### Local Development Setup
+
+##### Prerequisites
+
+* Go 1.24+ installed
+* [golangci-lint](https://golangci-lint.run/usage/install/) v2.8.0+
+* [gotestsum](https://github.com/gotestyourself/gotestsum) for test execution
+* Access to NGC API (for acceptance tests)
+
+```bash
+# Install required tools
+go install gotest.tools/gotestsum@latest
+```
+
+##### Running Tests Locally
+
+1. **Create your test configuration:**
+
+   ```bash
+   cp test-config.env.example test-config.env
+   ```
+
+2. **Edit `test-config.env`** with your NGC credentials and test environment settings:
+
+   ```bash
+   # Required: Your NGC API key
+   NGC_API_KEY=your-api-key-here
+
+   # Required: Your organization settings
+   NGC_ORG=your-org-id
+   NGC_TEAM=your-team-name
+   # ... (see test-config.env.example for all options)
+   ```
+
+   > ⚠️ **Important:** Never commit `test-config.env` - it contains sensitive credentials!
+
+3. **Run tests:**
+
+   ```bash
+   # Run unit tests (fast, no NGC API calls)
+   make test
+
+   # Run acceptance tests (requires NGC access, creates real resources)
+   make testacc
+
+   # Run linter
+   make lint
+   ```
+
+##### Available Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `make test` | Run unit tests (no NGC API calls) |
+| `make testacc` | Run acceptance tests locally (reads from `test-config.env`) |
+| `make testacc-ci` | Run acceptance tests in CI (expects env vars set externally) |
+| `make lint` | Run golangci-lint |
+| `make generate_doc` | Generate provider documentation |
+| `make install` | Install the provider binary locally |
+
+> **Note:** `make testacc` is for local development and reads configuration from `test-config.env`. `make testacc-ci` is used by GitHub Actions where environment variables are passed directly.
+
+##### Environment Variables
+
+For CI/CD, the following environment variables are used instead of the env file:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `NGC_API_KEY` | Secret | NGC API authentication key |
+| `NCA_ID` | Secret | NCA identifier |
+| `AUTHORIZED_PARTY_1`, `AUTHORIZED_PARTY_2` | Secret | Authorized party IDs |
+| `NGC_ORG`, `NGC_TEAM`, `NGC_ENDPOINT` | Variable | Organization config |
+| `BACKEND`, `CLUSTER_*`, `INSTANCE_TYPE`, `GPU_TYPE` | Variable | Infrastructure config |
+| `HELM_*`, `CONTAINER_*` | Variable | Deployment config |
+| `MODEL_*` | Variable | Model test config |
+
+See `test-config.env.example` for the complete list.
+
 #### Coding Guidelines
 
-- All source code contributions must passed the CI Jobs, including linter check, acceptance tests and/or unit tests.
-  - Linter check will be executed with [golang-ci](https://github.com/golangci/golangci-lint).
-  - Acceptance tests will interact with NGC, such as creating, reading and destroying resources.
-  - Unit tests test functionality without interact with NGC APIs, such as function tests.
+* All source code contributions must passed the CI Jobs, including linter check, acceptance tests and/or unit tests.
+  * Linter check will be executed with [golangci-lint](https://github.com/golangci/golangci-lint).
+  * Acceptance tests will interact with NGC, such as creating, reading and destroying resources.
+  * Unit tests test functionality without interact with NGC APIs, such as function tests.
 
-- Avoid introducing unnecessary complexity into existing code so that maintainability and readability are preserved.
+* Avoid introducing unnecessary complexity into existing code so that maintainability and readability are preserved.
 
-- Try to keep pull requests (PRs) as concise as possible:
-  - Avoid committing commented-out code.
-  - Wherever possible, each PR should address a single concern. If there are several otherwise-unrelated things that should be fixed to reach a desired endpoint, our recommendation is to open several PRs and indicate the dependencies in the description. The more complex the changes are in a single PR, the more time it will take to review those changes.
+* Try to keep pull requests (PRs) as concise as possible:
+  * Avoid committing commented-out code.
+  * Wherever possible, each PR should address a single concern. If there are several otherwise-unrelated things that should be fixed to reach a desired endpoint, our recommendation is to open several PRs and indicate the dependencies in the description. The more complex the changes are in a single PR, the more time it will take to review those changes.
 
-- Write commit titles using imperative mood and [these rules](https://chris.beams.io/posts/git-commit/), and reference the Issue number corresponding to the PR. Following is the recommended format for commit texts:
-```
+* Write commit titles using imperative mood and [these rules](https://chris.beams.io/posts/git-commit/), and reference the Issue number corresponding to the PR. Following is the recommended format for commit texts:
+
+```text
 #<Issue Number> - <Commit Title>
 
 <Commit Body>
 ```
 
-- Ensure that the build log is clean, meaning no warnings or errors should be present.
+* Ensure that the build log is clean, meaning no warnings or errors should be present.
 
-- Make sure that you can contribute your work to open source (no license and/or patent conflict is introduced by your code). You will need to [`sign`](#signing-your-work) your commit.
+* Make sure that you can contribute your work to open source (no license and/or patent conflict is introduced by your code). You will need to [`sign`](#signing-your-work) your commit.
 
-- Thanks in advance for your patience as we review your contributions; we do appreciate them!
+* Thanks in advance for your patience as we review your contributions; we do appreciate them!
 
 #### Pull Requests
 
@@ -50,7 +129,7 @@ Developer workflow for code contributions is as follows:
 * To sign off on a commit you simply use the `--signoff` (or `-s`) option when committing your changes:
 
   ```bash
-  $ git commit -s -m "Add cool feature."
+  git commit -s -m "Add cool feature."
   ```
 
   This will append the following to your commit message:

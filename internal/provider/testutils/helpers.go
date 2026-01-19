@@ -76,10 +76,15 @@ var TestLogsTelemetryId string
 var TestMetricsTelemetryId string
 
 func init() {
-	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
-
-	if err != nil {
-		log.Fatal("Error loading test config file", err)
+	// Load config from file if TEST_ENV_FILE is set and file exists
+	// Otherwise, rely on environment variables (for CI)
+	envFile := os.Getenv("TEST_ENV_FILE")
+	if envFile != "" {
+		if _, err := os.Stat(envFile); err == nil {
+			if err := godotenv.Load(envFile); err != nil {
+				log.Printf("Warning: Error loading test config file %s: %v", envFile, err)
+			}
+		}
 	}
 
 	TestNGCClient = &utils.NGCClient{

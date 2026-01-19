@@ -78,9 +78,7 @@ jobs:
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run unit tests
-        env:
-          NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
-        run: make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=${{ env.TEST_REPORT_FILE }} test
+        run: make test
 
       - name: Upload test results
         if: always()
@@ -204,8 +202,45 @@ jobs:
 
       - name: Run acceptance tests
         env:
+          # Secrets
           NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
-        run: make NGC_API_KEY=$NGC_API_KEY TEST_REPORT_FILE=${{ env.TEST_REPORT_FILE }} testacc
+          # Variables - Organization
+          NGC_ORG: ${{ vars.NGC_ORG }}
+          NGC_TEAM: ${{ vars.NGC_TEAM }}
+          NGC_ENDPOINT: ${{ vars.NGC_ENDPOINT }}
+          NCA_ID: ${{ vars.NCA_ID }}
+          AUTHORIZED_PARTY_1: ${{ vars.AUTHORIZED_PARTY_1 }}
+          AUTHORIZED_PARTY_2: ${{ vars.AUTHORIZED_PARTY_2 }}
+          # Variables - Helm
+          HELM_URI: ${{ vars.HELM_URI }}
+          HELM_SERVICE_NAME: ${{ vars.HELM_SERVICE_NAME }}
+          HELM_SERVICE_PORT: ${{ vars.HELM_SERVICE_PORT }}
+          HELM_INFERENCE_URL: ${{ vars.HELM_INFERENCE_URL }}
+          HELM_HEALTH_URI: ${{ vars.HELM_HEALTH_URI }}
+          HELM_VALUE_YAML_OVERWRITE: ${{ vars.HELM_VALUE_YAML_OVERWRITE }}
+          HELM_VALUE_YAML_OVERWRITE_UPDATE: ${{ vars.HELM_VALUE_YAML_OVERWRITE_UPDATE }}
+          # Variables - Container
+          CONTAINER_URI: ${{ vars.CONTAINER_URI }}
+          CONTAINER_PORT: ${{ vars.CONTAINER_PORT }}
+          CONTAINER_INFERENCE_URL: ${{ vars.CONTAINER_INFERENCE_URL }}
+          CONTAINER_HEALTH_URI: ${{ vars.CONTAINER_HEALTH_URI }}
+          # Variables - Cluster/Backend
+          BACKEND: ${{ vars.BACKEND }}
+          CLUSTER_1: ${{ vars.CLUSTER_1 }}
+          CLUSTER_2: ${{ vars.CLUSTER_2 }}
+          CLUSTER_1_REGION: ${{ vars.CLUSTER_1_REGION }}
+          CLUSTER_2_REGION: ${{ vars.CLUSTER_2_REGION }}
+          INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
+          GPU_TYPE: ${{ vars.GPU_TYPE }}
+          # Variables - Model
+          MODEL_1_NAME: ${{ vars.MODEL_1_NAME }}
+          MODEL_1_VERSION: ${{ vars.MODEL_1_VERSION }}
+          MODEL_1_URI: ${{ vars.MODEL_1_URI }}
+          MODEL_1_FULLY_QUALIFIED_URI: ${{ vars.MODEL_1_FULLY_QUALIFIED_URI }}
+          # Variables - Telemetry
+          LOGS_TELEMETRY_ID: ${{ vars.LOGS_TELEMETRY_ID }}
+          METRICS_TELEMETRY_ID: ${{ vars.METRICS_TELEMETRY_ID }}
+        run: make testacc-ci
 
       - name: Upload test results
         if: always()
