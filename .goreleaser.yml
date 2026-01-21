@@ -26,14 +26,11 @@ builds:
   ldflags:
     - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
   goos:
-    # - freebsd
     - windows
     - linux
     - darwin
   goarch:
     - amd64
-    # - '386'
-    # - arm
     - arm64
   ignore:
     - goos: darwin
@@ -48,41 +45,3 @@ checksum:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-# FIXME: Bring back once we fix the code signing dependency issue.
-# signs:
-#   - artifacts: checksum
-#     cmd: nvsec
-#     signature: "${artifact}.sig"
-#     args:
-#       - 3s
-#       - submit
-#       - --job_type
-#       - NGC_TF_PROVIDER
-#       - --input_file
-#       - "${artifact}"
-#       - --description
-#       - "CI Generate"
-#       - --client_id
-#       - "{{ .Env.CODE_SIGN_SSA_CLIENT_ID }}"
-#       - --client_secret
-#       - "{{ .Env.CODE_SIGN_SSA_CLIENT_SECRET }}"
-#       - --scope
-#       - SIGNING_NGC_TF_PROVIDER
-#       - --download
-#       - --result_filename
-#       - ${signature}
-release:
-  github:
-    owner: NVIDIA
-    name: terraform-provider-ngc
-  extra_files:
-    - glob: 'terraform-registry-manifest.json'
-      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
-changelog:
-  disable: true
-artifactories:
-  - name: urm
-    target: https://urm.nvidia.com/artifactory/sw-backstage-terraform-local/nvidia/ngc/{{ .Version }}/
-    checksum: true
-    meta: true
-    signature: true
