@@ -224,8 +224,7 @@ jobs:
           CONTAINER_PORT: ${{ vars.CONTAINER_PORT }}
           CONTAINER_INFERENCE_URL: ${{ vars.CONTAINER_INFERENCE_URL }}
           CONTAINER_HEALTH_URI: ${{ vars.CONTAINER_HEALTH_URI }}
-          # Variables - Cluster/Backend
-          BACKEND: ${{ vars.BACKEND }}
+          # Variables - Cluster
           CLUSTER_1: ${{ vars.CLUSTER_1 }}
           CLUSTER_2: ${{ vars.CLUSTER_2 }}
           CLUSTER_1_REGION: ${{ vars.CLUSTER_1_REGION }}

@@ -69,15 +69,14 @@ Required:
 
 Required:
 
-- `gpu_type` (String) GPU Type, GFN backend default is L40
-- `instance_type` (String) NVCF Backend Instance Type.
+- `gpu_type` (String) GPU Type, GFN default is L40
+- `instance_type` (String) NVCF Instance Type.
 - `max_instances` (Number) Max Instances Count
 - `max_request_concurrency` (Number) Max Concurrency Count
 - `min_instances` (Number) Min Instances Count
 
 Optional:
 
-- `backend` (String) NVCF Backend.
 - `clusters` (Set of String) Specific clusters within spot instance or worker node powered by the selected instance-type to deploy function.
 - `configuration` (String) Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions
 - `regions` (Set of String) List of regions allowed to deploy. The instance or worker node will be in one of the specified geographical regions.

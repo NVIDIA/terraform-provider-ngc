@@ -54,7 +54,6 @@ var TestContainerHealthUri string
 var TestContainerAPIFormat string
 var TestContainerEnvironmentVariables []utils.NvidiaCloudFunctionContainerEnvironment
 
-var TestBackend string
 var TestInstanceType string
 var TestGpuType string
 
@@ -124,7 +123,6 @@ func init() {
 			Value: "mock_val",
 		},
 	}
-	TestBackend = os.Getenv("BACKEND")
 	TestClusters = []string{os.Getenv("CLUSTER_1"), os.Getenv("CLUSTER_2")}
 	TestRegions = []string{os.Getenv("CLUSTER_1_REGION"), os.Getenv("CLUSTER_2_REGION")}
 	TestInstanceType = os.Getenv("INSTANCE_TYPE")
@@ -183,7 +181,7 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 		DeploymentSpecifications: []utils.NvidiaCloudFunctionDeploymentSpecification{
 			{
 				Gpu:                   TestGpuType,
-				Backend:               TestBackend,
+				Clusters:              []string{TestClusters[0]},
 				InstanceType:          TestInstanceType,
 				MaxInstances:          1,
 				MinInstances:          1,

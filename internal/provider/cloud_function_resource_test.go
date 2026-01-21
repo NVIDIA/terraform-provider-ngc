@@ -65,7 +65,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 							deployment_specifications = [
 								{
 									configuration           = "%s"
-									backend                 = "%s"
+									clusters                = ["%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 1
@@ -88,7 +88,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
+					testutils.TestClusters[0],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 				),
@@ -114,7 +114,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 							deployment_specifications = [
 								{
 									configuration           = "%s"
-									backend                 = "%s"
+									clusters                = ["%s"]
 									instance_type           = "%s"
 									gpu_type                = "%s"
 									max_instances           = 1
@@ -137,7 +137,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 					testutils.TestHelmServicePort,
 					testutils.TestHelmAPIFormat,
 					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
+					testutils.TestClusters[0],
 					testutils.TestInstanceType,
 					testutils.TestGpuType,
 				),
@@ -147,333 +147,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionFail(t *testing.T) {
 	})
 }
 
-func TestAccCloudFunctionResource_CreateAndUpdateHelmBasedFunctionDeployWithBackendOptionSuccess(t *testing.T) {
-	var functionName = testutils.TestCommonPrefix + "helm-based-function-with-backend-option"
-	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Verify Function Creation
-			{
-				Config: fmt.Sprintf(`
-						resource "ngc_cloud_function" "%s" {
-						    function_name             = "%s"
-							helm_chart                = "%s"
-							helm_chart_service_name   = "%s"
-							inference_port            = %d
-							inference_url             = "%s"
-							health                    = {
-								uri                  = "%s"
-								port                 = %d
-								expected_status_code = 200
-								timeout              = "PT10S"
-								protocol             = "HTTP"
-							}
-							api_body_format           = "%s"
-							deployment_specifications = [
-								{
-									configuration           = "%s"
-									backend                 = "%s"
-									instance_type           = "%s"
-									gpu_type                = "%s"
-									max_instances           = 1
-									min_instances           = 1
-									max_request_concurrency = 1
-								}
-							]
-							authorized_parties = [
-								{
-									nca_id = "%s"
-								},
-								{
-									nca_id = "%s"
-								}
-							]
-							tags = ["%s","%s"]
-							graceful_deletion = true
-						}
-						`,
-					functionName,
-					functionName,
-					testutils.TestHelmUri,
-					testutils.TestHelmServiceName,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmInferenceUrl,
-					testutils.TestHelmHealthUri,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmAPIFormat,
-					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
-					testutils.TestInstanceType,
-					testutils.TestGpuType,
-					testutils.TestAuthorizedParty1,
-					testutils.TestAuthorizedParty2,
-					testutils.TestTags[0],
-					testutils.TestTags[1],
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
-
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart", testutils.TestHelmUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
-					// Verify number of deployment_specifications
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.0", testutils.TestTags[0]),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "tags.1", testutils.TestTags[1]),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "2"),
-				),
-			},
-			// Verify Function In-place Update
-			{
-				Config: fmt.Sprintf(`
-						resource "ngc_cloud_function" "%s" {
-						    function_name             = "%s"
-							helm_chart                = "%s"
-							helm_chart_service_name   = "%s"
-							inference_port            = %d
-							inference_url             = "%s"
-							health                    = {
-								uri                  = "%s"
-								port                 = %d
-								expected_status_code = 200
-								timeout              = "PT10S"
-								protocol             = "HTTP"
-							}
-							api_body_format           = "%s"
-							deployment_specifications = [
-								{
-									configuration           = "%s"
-									backend                 = "%s"
-									instance_type           = "%s"
-									gpu_type                = "%s"
-									max_instances           = 2
-									min_instances           = 1
-									max_request_concurrency = 2
-								}
-							]
-							timeouts = {
-								update = "3s" # The update will be returned quickly since it just trigger in-place update.
-							}
-						}
-						`,
-					functionName,
-					functionName,
-					testutils.TestHelmUri,
-					testutils.TestHelmServiceName,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmInferenceUrl,
-					testutils.TestHelmHealthUri,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmAPIFormat,
-					testutils.EscapeJSON(t, testutils.TestHelmValueOverWrite),
-					testutils.TestBackend,
-					testutils.TestInstanceType,
-					testutils.TestGpuType,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
-
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart", testutils.TestHelmUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
-					// Verify number of deployment_specifications
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "2"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
-				),
-			},
-			// Verify Function Force-Replace Update with Creation Timeout
-			{
-				Config: fmt.Sprintf(`
-									resource "ngc_cloud_function" "%s" {
-										function_name             = "%s"
-										helm_chart                = "%s"
-										helm_chart_service_name   = "%s"
-										inference_port            = %d
-										inference_url             = "%s"
-										health                    = {
-											uri                  = "%s"
-											port                 = %d
-											expected_status_code = 200
-											timeout              = "PT10S"
-											protocol             = "HTTP"
-										}
-										api_body_format           = "%s"
-										deployment_specifications = [
-											{
-												configuration           = "%s"
-												backend                 = "%s"
-												instance_type           = "%s"
-												gpu_type                = "%s"
-												max_instances           = 1
-												min_instances           = 1
-												max_request_concurrency = 1
-											}
-										]
-										timeouts = {
-											create = "1s"
-										}
-									}
-									`,
-					functionName,
-					functionName,
-					testutils.TestHelmUri,
-					testutils.TestHelmServiceName,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmInferenceUrl,
-					testutils.TestHelmHealthUri,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmAPIFormat,
-					testutils.EscapeJSON(t, testutils.TestHelmValueOverWriteUpdated),
-					testutils.TestBackend,
-					testutils.TestInstanceType,
-					testutils.TestGpuType,
-				),
-				ExpectError: regexp.MustCompile("timeout occurred"),
-			},
-			// Verify Function Force-Replace Update
-			{
-				Config: fmt.Sprintf(`
-									resource "ngc_cloud_function" "%s" {
-										function_name             = "%s"
-										helm_chart                = "%s"
-										helm_chart_service_name   = "%s"
-										inference_port            = %d
-										inference_url             = "%s"
-										health                    = {
-											uri                  = "%s"
-											port                 = %d
-											expected_status_code = 200
-											timeout              = "PT10S"
-											protocol             = "HTTP"
-										}
-										api_body_format           = "%s"
-										deployment_specifications = [
-											{
-												configuration           = "%s"
-												backend                 = "%s"
-												instance_type           = "%s"
-												gpu_type                = "%s"
-												max_instances           = 1
-												min_instances           = 1
-												max_request_concurrency = 1
-											}
-										]
-									}
-									`,
-					functionName,
-					functionName,
-					testutils.TestHelmUri,
-					testutils.TestHelmServiceName,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmInferenceUrl,
-					testutils.TestHelmHealthUri,
-					testutils.TestHelmServicePort,
-					testutils.TestHelmAPIFormat,
-					testutils.EscapeJSON(t, testutils.TestHelmValueOverWriteUpdated),
-					testutils.TestBackend,
-					testutils.TestInstanceType,
-					testutils.TestGpuType,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "id"),
-					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "version_id"),
-
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "function_id"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "container_image"),
-					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "telemetries"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "nca_id", testutils.TestNcaID),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "function_name", functionName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart", testutils.TestHelmUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "helm_chart_service_name", testutils.TestHelmServiceName),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "inference_url", testutils.TestHelmInferenceUrl),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "api_body_format", testutils.TestHelmAPIFormat),
-					// Verify number of deployment_specifications
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.#", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_type", testutils.TestGpuType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.backend", testutils.TestBackend),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWriteUpdated),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.port", strconv.Itoa(testutils.TestHelmServicePort)),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.timeout", "PT10S"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.expected_status_code", "200"),
-
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
-				),
-			},
-			// Verify Function Import
-			{
-				ResourceName:      testCloudFunctionResourceFullPath,
-				ImportStateIdFunc: generateFunctionStateResourceId(testCloudFunctionResourceFullPath),
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"graceful_deletion", // Not assigned when import
-				},
-			},
-		},
-	})
-}
-
-func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithClustersOptionSuccess(t *testing.T) {
-	var functionName = testutils.TestCommonPrefix + "helm-based-function-version-with-clusters-option"
+func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeploySuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "helm-based-function-version"
 	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	functionInfo := testutils.CreateHelmFunction(t)
@@ -677,8 +352,8 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeployWithCluste
 	})
 }
 
-func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeployWithClustersAndRegionOptionsSuccess(t *testing.T) {
-	var functionName = testutils.TestCommonPrefix + "container-based-function-version-with-clusters-and-region-options"
+func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeploySuccess(t *testing.T) {
+	var functionName = testutils.TestCommonPrefix + "container-based-function-version"
 	var testCloudFunctionResourceFullPath = fmt.Sprintf("ngc_cloud_function.%s", functionName)
 
 	functionInfo := testutils.CreateContainerFunction(t)

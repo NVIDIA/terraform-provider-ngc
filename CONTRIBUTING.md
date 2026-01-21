@@ -77,7 +77,7 @@ For CI/CD, the following environment variables are used instead of the env file:
 | `NCA_ID` | Secret | NCA identifier |
 | `AUTHORIZED_PARTY_1`, `AUTHORIZED_PARTY_2` | Secret | Authorized party IDs |
 | `NGC_ORG`, `NGC_TEAM`, `NGC_ENDPOINT` | Variable | Organization config |
-| `BACKEND`, `CLUSTER_*`, `INSTANCE_TYPE`, `GPU_TYPE` | Variable | Infrastructure config |
+| `CLUSTER_*`, `INSTANCE_TYPE`, `GPU_TYPE` | Variable | Infrastructure config |
 | `HELM_*`, `CONTAINER_*` | Variable | Deployment config |
 | `MODEL_*` | Variable | Model test config |
 

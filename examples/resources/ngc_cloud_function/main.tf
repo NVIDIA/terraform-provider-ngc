@@ -8,7 +8,7 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example" {
   deployment_specifications = [
     {
       configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-      backend                 = "dgxc-forge-az33-prd1"
+      clusters                = ["dgxc-forge-az33-prd1"]
       instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
@@ -43,7 +43,7 @@ resource "ngc_cloud_function" "helm_based_cloud_function_example_version" {
   deployment_specifications = [
     {
       configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-      backend                 = "dgxc-forge-az33-prd1"
+      clusters                = ["dgxc-forge-az33-prd1"]
       instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
@@ -68,7 +68,7 @@ resource "ngc_cloud_function" "container_based_cloud_function_example" {
   api_body_format = "CUSTOM"
   deployment_specifications = [
     {
-      backend                 = "dgxc-forge-az33-prd1"
+      clusters                = ["dgxc-forge-az33-prd1"]
       instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1
@@ -134,7 +134,7 @@ resource "ngc_cloud_function" "container_based_cloud_function_example_version" {
   ]
   deployment_specifications = [
     {
-      backend                 = "dgxc-forge-az33-prd1"
+      clusters                = ["dgxc-forge-az33-prd1"]
       instance_type           = "DGX-CLOUD.GPU.L40_1x"
       gpu_type                = "L40"
       max_instances           = 1

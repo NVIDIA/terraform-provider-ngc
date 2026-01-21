@@ -364,6 +364,7 @@ func deploymentSpecificationsSchema() schema.ListNestedAttribute {
 				"backend": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend.",
 					Optional:            true,
+					DeprecationMessage:  "This field is deprecated. Please use `clusters` instead.",
 				},
 				"instance_type": schema.StringAttribute{
 					MarkdownDescription: "NVCF Backend Instance Type.",
