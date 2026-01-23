@@ -14,17 +14,9 @@ on:
   push:
     branches:
       - main
+      - "pull-request/[0-9]+"
     tags-ignore:
       - '**'
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-
-# Prevent duplicate runs on PR and push
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 env:
   GO_VERSION: '1.24'
@@ -45,7 +37,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,7 +55,7 @@ jobs:
 
   unit-test:
     name: Unit Test
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,7 +97,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [lint, unit-test]
     steps:
       - name: Checkout code
@@ -142,7 +134,7 @@ jobs:
 
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [build]
     steps:
       - name: Checkout code
@@ -184,7 +176,7 @@ jobs:
 
   integration-test:
     name: Integration Test
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [lint, unit-test, build, security-scan]
     environment: integration-test
     steps:
@@ -266,7 +258,7 @@ jobs:
 
   ci-summary:
     name: CI Summary
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu4
     needs: [lint, unit-test, integration-test, build, security-scan]
     if: always()
     steps:
