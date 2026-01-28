@@ -1,68 +1,61 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: LicenseRef-NvidiaProprietary
-
-# NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
-# property and proprietary rights in and to this material, related
-# documentation and any modifications thereto. Any use, reproduction,
-# disclosure or distribution of this material and related documentation
-# without an express license agreement from NVIDIA CORPORATION or
-# its affiliates is strictly prohibited.
-
-# Visit https://golangci-lint.run/ for usage documentation
-# and information on other useful linters
+version: "2"
 run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 10m
-
-  # exit code when at least one issue was found, default is 1
   issues-exit-code: 1
-
-  # include test files or not, default is true
   tests: false
-
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
-
-linters-settings:
-  lll:
-    # seems reasonable enough with high-res available
-    line-length: 250
-  gosec:
-    config:
-      G306: "0644"
-  gocritic:
-    disabled-checks:
-      - ifElseChain
-
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - durationcheck
     - errcheck
     - forcetypeassert
-    - godot
-    - gofmt
-    - gosimple
-    - gosec
     - goconst
-    - gocyclo
     - gocritic
-    - goimports
+    - gocyclo
+    - godot
+    - gosec
     - govet
     - ineffassign
+    - lll
     - makezero
     - misspell
-    - nilerr
     - nakedret
+    - nilerr
     - predeclared
-    # - revive # Too noisy for now.
-    - lll
     - staticcheck
-    - tenv
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
+  settings:
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+    gosec:
+      config:
+        G306: "0644"
+    lll:
+      line-length: 250
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

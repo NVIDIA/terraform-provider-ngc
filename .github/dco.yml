@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-NvidiaProprietary
+
+# Configuration for the DCO bot
+# https://github.com/probot/dco
+
+# Require all commits to be signed off EXCEPT for organization members and bots
+require:
+  members: false  # Organization members don't need to sign off

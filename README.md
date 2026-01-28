@@ -75,7 +75,7 @@ make testacc
 
 2. Change debug level `export TF_LOG=DEBUG`
 3. Setup NGC key `export NGC_API_KEY=nvapi-REDACTED`
-4. Test with terraform HCL. Here is an example. Please replace `backend` and `instance_type` by yourselves.
+4. Test with terraform HCL. Here is an example. Please replace `clusters` and `instance_type` by yourselves.
 
     ```terraform
         terraform {
@@ -102,7 +102,7 @@ make testacc
             deployment_specifications = [
                 {
                 configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-                backend                 = "dgxc-forge-az33-prd1"
+                clusters                 = ["dgxc-forge-az33-prd1"]
                 instance_type           = "DGX-CLOUD.GPU.L40_1x"
                 gpu_type                = "L40"
                 max_instances           = 1
@@ -124,7 +124,7 @@ make testacc
             deployment_specifications = [
                 {
                 configuration           = "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}",
-                backend                 = "dgxc-forge-az33-prd1"
+                clusters                 = ["dgxc-forge-az33-prd1"]
                 instance_type           = "DGX-CLOUD.GPU.L40_1x"
                 gpu_type                = "L40"
                 max_instances           = 1
@@ -143,7 +143,7 @@ make testacc
             api_body_format      = "CUSTOM"
             deployment_specifications = [
                 {
-                backend                 = "dgxc-forge-az33-prd1"
+                clusters                 = ["dgxc-forge-az33-prd1"]
                 instance_type           = "DGX-CLOUD.GPU.L40_1x"
                 gpu_type                = "L40"
                 max_instances           = 1
@@ -163,7 +163,7 @@ make testacc
             api_body_format      = "CUSTOM"
             deployment_specifications = [
                 {
-                backend                 = "dgxc-forge-az33-prd1"
+                clusters                 = ["dgxc-forge-az33-prd1"]
                 instance_type           = "DGX-CLOUD.GPU.L40_1x"
                 gpu_type                = "L40"
                 max_instances           = 1

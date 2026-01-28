@@ -54,7 +54,6 @@ var TestContainerHealthUri string
 var TestContainerAPIFormat string
 var TestContainerEnvironmentVariables []utils.NvidiaCloudFunctionContainerEnvironment
 
-var TestBackend string
 var TestInstanceType string
 var TestGpuType string
 
@@ -76,10 +75,15 @@ var TestLogsTelemetryId string
 var TestMetricsTelemetryId string
 
 func init() {
-	err := godotenv.Load(os.Getenv("TEST_ENV_FILE"))
-
-	if err != nil {
-		log.Fatal("Error loading test config file", err)
+	// Load config from file if TEST_ENV_FILE is set and file exists
+	// Otherwise, rely on environment variables (for CI)
+	envFile := os.Getenv("TEST_ENV_FILE")
+	if envFile != "" {
+		if _, err := os.Stat(envFile); err == nil {
+			if err := godotenv.Load(envFile); err != nil {
+				log.Printf("Warning: Error loading test config file %s: %v", envFile, err)
+			}
+		}
 	}
 
 	TestNGCClient = &utils.NGCClient{
@@ -119,7 +123,6 @@ func init() {
 			Value: "mock_val",
 		},
 	}
-	TestBackend = os.Getenv("BACKEND")
 	TestClusters = []string{os.Getenv("CLUSTER_1"), os.Getenv("CLUSTER_2")}
 	TestRegions = []string{os.Getenv("CLUSTER_1_REGION"), os.Getenv("CLUSTER_2_REGION")}
 	TestInstanceType = os.Getenv("INSTANCE_TYPE")
@@ -178,7 +181,7 @@ func CreateDeployment(t *testing.T, functionID string, versionID string, configu
 		DeploymentSpecifications: []utils.NvidiaCloudFunctionDeploymentSpecification{
 			{
 				Gpu:                   TestGpuType,
-				Backend:               TestBackend,
+				Clusters:              []string{TestClusters[0]},
 				InstanceType:          TestInstanceType,
 				MaxInstances:          1,
 				MinInstances:          1,

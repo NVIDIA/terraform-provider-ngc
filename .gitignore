@@ -38,6 +38,12 @@ website/vendor
 report.xml
 coverage*.out
 report_acc.xml
+report_ut.xml
+
+# Test configuration (contains secrets - DO NOT COMMIT)
+test-config.env
+test-config-*.env
+!test-config.env.example
 
 # Sonarqube cache
 .scannerwork/
