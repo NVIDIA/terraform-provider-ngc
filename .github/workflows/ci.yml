@@ -159,7 +159,7 @@ jobs:
           skip-dirs: 'vendor,node_modules,dist'
 
       - name: Upload Trivy SARIF report
-        uses: github/codeql-action/upload-sarif@v4.31.5
+        uses: github/codeql-action/upload-sarif@v4.32.0
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
