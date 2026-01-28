@@ -27,7 +27,7 @@ env:
 permissions:
   contents: read
   pull-requests: write
-  checks: write         # Required for dorny/test-reporter
+  checks: write           # Required for dorny/test-reporter
   security-events: write  # Required for SARIF upload
 
 jobs:
