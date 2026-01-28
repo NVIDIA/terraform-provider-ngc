@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           name: Unit Test Results
           path: report_ut.xml
@@ -245,7 +245,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           name: Integration Test Results
           path: report_acc.xml
