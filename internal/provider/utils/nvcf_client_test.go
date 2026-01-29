@@ -1464,3 +1464,1183 @@ func TestSendRequestWithoutQueryParams(t *testing.T) {
 		t.Errorf("Expected no query parameters, got: %s", mockRT.Request.URL.RawQuery)
 	}
 }
+
+// Mock telemetry data
+var mockTelemetryId = "tel-12345678-1234-1234-1234-123456789abc"
+var mockTelemetryInfo = fmt.Sprintf(`
+	{
+		"telemetry": {
+			"telemetryId": "%s",
+			"name": "test-telemetry",
+			"endpoint": "https://telemetry.example.com",
+			"protocol": "OTLP",
+			"provider": "DATADOG",
+			"types": ["LOGS", "METRICS"],
+			"createdAt": "2024-03-13T09:04:20.377756757Z"
+		}
+	}
+	`, mockTelemetryId)
+
+var mockTelemetryListInfo = fmt.Sprintf(`
+	{
+		"telemetries": [
+			{
+				"telemetryId": "%s",
+				"name": "test-telemetry-1",
+				"endpoint": "https://telemetry1.example.com",
+				"protocol": "OTLP",
+				"provider": "DATADOG",
+				"types": ["LOGS"],
+				"createdAt": "2024-03-13T09:04:20.377756757Z"
+			},
+			{
+				"telemetryId": "tel-87654321-4321-4321-4321-cba987654321",
+				"name": "test-telemetry-2",
+				"endpoint": "https://telemetry2.example.com",
+				"protocol": "OTLP",
+				"provider": "SPLUNK",
+				"types": ["METRICS", "TRACES"],
+				"createdAt": "2024-03-14T10:05:21.377756757Z"
+			}
+		]
+	}
+	`, mockTelemetryId)
+
+// Mock authorization data
+var mockAuthorizationInfo = fmt.Sprintf(`
+	{
+		"function": {
+			"id": "%s",
+			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
+			"versionId": "%s",
+			"authorizedParties": [
+				{
+					"ncaId": "party-nca-id-1",
+					"clientId": "client-1"
+				},
+				{
+					"ncaId": "party-nca-id-2",
+					"clientId": "client-2"
+				}
+			]
+		}
+	}
+	`, mockFunctionID, mockVersionID)
+
+func TestNVCFClient_CreateTelemetry(t *testing.T) {
+	t.Parallel()
+
+	var createTelemetryResp CreateNvidiaCloudFunctionTelemetryResponse
+	json.Unmarshal([]byte(mockTelemetryInfo), &createTelemetryResp)
+
+	createTelemetryReq := CreateNvidiaCloudFunctionTelemetryRequest{
+		Endpoint: "https://telemetry.example.com",
+		Protocol: "OTLP",
+		Provider: "DATADOG",
+		Types:    []string{"LOGS", "METRICS"},
+		Secret: NvidiaCloudFunctionTelemetrySecret{
+			Name:  "api-key",
+			Value: "secret-value",
+		},
+	}
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx context.Context
+		req CreateNvidiaCloudFunctionTelemetryRequest
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		wantResp   *CreateNvidiaCloudFunctionTelemetryResponse
+		wantErr    bool
+		wantErrMsg string
+	}{
+		{
+			name: "CreateTelemetrySuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries", mockEndpoint, mockOrg, mockTeam),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						createTelemetryReq,
+						mockTelemetryInfo,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: createTelemetryReq,
+			},
+			wantResp: &createTelemetryResp,
+			wantErr:  false,
+		},
+		{
+			name: "CreateTelemetryFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries", mockEndpoint, mockOrg, mockTeam),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						createTelemetryReq,
+						mockErrorResponse,
+						400,
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: createTelemetryReq,
+			},
+			wantResp:   &CreateNvidiaCloudFunctionTelemetryResponse{},
+			wantErr:    true,
+			wantErrMsg: mockErrorDetail,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.CreateTelemetry(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr || ((err != nil) && err.Error() != tt.wantErrMsg) {
+				t.Errorf("NVCFClient.CreateTelemetry() error = %v, wantErr %v, wantErrMsg %v", err, tt.wantErr, tt.wantErrMsg)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.CreateTelemetry() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_GetTelemetry(t *testing.T) {
+	t.Parallel()
+
+	var getTelemetryResp GetNvidiaCloudFunctionTelemetryResponse
+	json.Unmarshal([]byte(mockTelemetryInfo), &getTelemetryResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx         context.Context
+		telemetryId string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *GetNvidiaCloudFunctionTelemetryResponse
+		wantErr  bool
+	}{
+		{
+			name: "GetTelemetrySuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries/%s", mockEndpoint, mockOrg, mockTeam, mockTelemetryId),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockTelemetryInfo,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:         context.Background(),
+				telemetryId: mockTelemetryId,
+			},
+			wantResp: &getTelemetryResp,
+			wantErr:  false,
+		},
+		{
+			name: "GetTelemetryNotFound",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries/%s", mockEndpoint, mockOrg, mockTeam, mockTelemetryId),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						404,
+					),
+				},
+			},
+			args: args{
+				ctx:         context.Background(),
+				telemetryId: mockTelemetryId,
+			},
+			wantResp: &GetNvidiaCloudFunctionTelemetryResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.GetTelemetry(tt.args.ctx, tt.args.telemetryId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.GetTelemetry() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.GetTelemetry() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_ListTelemetries(t *testing.T) {
+	t.Parallel()
+
+	var listTelemetriesResp ListNvidiaCloudFunctionTelemetryResponse
+	json.Unmarshal([]byte(mockTelemetryListInfo), &listTelemetriesResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *ListNvidiaCloudFunctionTelemetryResponse
+		wantErr  bool
+	}{
+		{
+			name: "ListTelemetriesSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries", mockEndpoint, mockOrg, mockTeam),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockTelemetryListInfo,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			wantResp: &listTelemetriesResp,
+			wantErr:  false,
+		},
+		{
+			name: "ListTelemetriesFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries", mockEndpoint, mockOrg, mockTeam),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						500,
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			wantResp: &ListNvidiaCloudFunctionTelemetryResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.ListTelemetries(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.ListTelemetries() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.ListTelemetries() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_DeleteTelemetry(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx         context.Context
+		telemetryId string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "DeleteTelemetrySuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries/%s", mockEndpoint, mockOrg, mockTeam, mockTelemetryId),
+						http.MethodDelete,
+						nvcfRequestHeaders,
+						nil,
+						"",
+						204,
+					),
+				},
+			},
+			args: args{
+				ctx:         context.Background(),
+				telemetryId: mockTelemetryId,
+			},
+			wantErr: false,
+		},
+		{
+			name: "DeleteTelemetryNotFound",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/telemetries/%s", mockEndpoint, mockOrg, mockTeam, mockTelemetryId),
+						http.MethodDelete,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						404,
+					),
+				},
+			},
+			args: args{
+				ctx:         context.Background(),
+				telemetryId: mockTelemetryId,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			if err := c.DeleteTelemetry(tt.args.ctx, tt.args.telemetryId); (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.DeleteTelemetry() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_AuthorizeAccountsToInvokeFunction(t *testing.T) {
+	t.Parallel()
+
+	var authorizeResp AuthorizeAccountsToInvokeFunctionResponse
+	json.Unmarshal([]byte(mockAuthorizationInfo), &authorizeResp)
+
+	authorizeReq := AuthorizeAccountsToInvokeFunctionRequest{
+		AuthorizedParties: []AuthorizedParty{
+			{NcaID: "party-nca-id-1", ClientId: "client-1"},
+			{NcaID: "party-nca-id-2", ClientId: "client-2"},
+		},
+	}
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx               context.Context
+		functionID        string
+		functionVersionID string
+		req               AuthorizeAccountsToInvokeFunctionRequest
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *AuthorizeAccountsToInvokeFunctionResponse
+		wantErr  bool
+	}{
+		{
+			name: "AuthorizeAccountsSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						authorizeReq,
+						mockAuthorizationInfo,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+				req:               authorizeReq,
+			},
+			wantResp: &authorizeResp,
+			wantErr:  false,
+		},
+		{
+			name: "AuthorizeAccountsFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						authorizeReq,
+						mockErrorResponse,
+						400,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+				req:               authorizeReq,
+			},
+			wantResp: &AuthorizeAccountsToInvokeFunctionResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.AuthorizeAccountsToInvokeFunction(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.AuthorizeAccountsToInvokeFunction() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.AuthorizeAccountsToInvokeFunction() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_UnAuthorizeAllExtraAccountsToInvokeFunction(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx               context.Context
+		functionID        string
+		functionVersionID string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "UnAuthorizeAllExtraAccountsSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodDelete,
+						nvcfRequestHeaders,
+						nil,
+						"",
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantErr: false,
+		},
+		{
+			name: "UnAuthorizeAllExtraAccountsFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodDelete,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						500,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			if err := c.UnAuthorizeAllExtraAccountsToInvokeFunction(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID); (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.UnAuthorizeAllExtraAccountsToInvokeFunction() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_GetFunctionAuthorization(t *testing.T) {
+	t.Parallel()
+
+	var getAuthResp AuthorizeAccountsToInvokeFunctionResponse
+	json.Unmarshal([]byte(mockAuthorizationInfo), &getAuthResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx               context.Context
+		functionID        string
+		functionVersionID string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *AuthorizeAccountsToInvokeFunctionResponse
+		wantErr  bool
+	}{
+		{
+			name: "GetFunctionAuthorizationSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockAuthorizationInfo,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantResp: &getAuthResp,
+			wantErr:  false,
+		},
+		{
+			name: "GetFunctionAuthorizationFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/authorizations/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						404,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantResp: &AuthorizeAccountsToInvokeFunctionResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.GetFunctionAuthorization(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.GetFunctionAuthorization() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.GetFunctionAuthorization() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_GetNvidiaCloudFunctionVersion(t *testing.T) {
+	t.Parallel()
+
+	getFunctionVersionMockRespRaw := fmt.Sprintf(`{"function": %s}`, mockContainerBasedFunctionInfo)
+	var getFunctionVersionMockResp GetNvidiaCloudFunctionVersionResponse
+	json.Unmarshal([]byte(getFunctionVersionMockRespRaw), &getFunctionVersionMockResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx               context.Context
+		functionID        string
+		functionVersionID string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *GetNvidiaCloudFunctionVersionResponse
+		wantErr  bool
+	}{
+		{
+			name: "GetNvidiaCloudFunctionVersionSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						getFunctionVersionMockRespRaw,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantResp: &getFunctionVersionMockResp,
+			wantErr:  false,
+		},
+		{
+			name: "GetNvidiaCloudFunctionVersionNotFound",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodGet,
+						nvcfRequestHeaders,
+						nil,
+						mockErrorResponse,
+						404,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+			},
+			wantResp: &GetNvidiaCloudFunctionVersionResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.GetNvidiaCloudFunctionVersion(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.GetNvidiaCloudFunctionVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.GetNvidiaCloudFunctionVersion() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_UpdateNvidiaCloudFunctionMetadata(t *testing.T) {
+	t.Parallel()
+
+	updateMetadataMockRespRaw := fmt.Sprintf(`{"function": %s}`, mockContainerBasedFunctionInfo)
+	var updateMetadataMockResp UpdateNvidiaCloudFunctionMetadataResponse
+	json.Unmarshal([]byte(updateMetadataMockRespRaw), &updateMetadataMockResp)
+
+	updateMetadataReq := UpdateNvidiaCloudFunctionMetadataRequest{
+		Tags: []string{"tag1", "tag2", "tag3"},
+	}
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx               context.Context
+		functionID        string
+		functionVersionID string
+		req               UpdateNvidiaCloudFunctionMetadataRequest
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *UpdateNvidiaCloudFunctionMetadataResponse
+		wantErr  bool
+	}{
+		{
+			name: "UpdateNvidiaCloudFunctionMetadataSuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/metadata/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodPut,
+						nvcfRequestHeaders,
+						updateMetadataReq,
+						updateMetadataMockRespRaw,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+				req:               updateMetadataReq,
+			},
+			wantResp: &updateMetadataMockResp,
+			wantErr:  false,
+		},
+		{
+			name: "UpdateNvidiaCloudFunctionMetadataFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/metadata/functions/%s/versions/%s", mockEndpoint, mockOrg, mockTeam, mockFunctionID, mockVersionID),
+						http.MethodPut,
+						nvcfRequestHeaders,
+						updateMetadataReq,
+						mockErrorResponse,
+						400,
+					),
+				},
+			},
+			args: args{
+				ctx:               context.Background(),
+				functionID:        mockFunctionID,
+				functionVersionID: mockVersionID,
+				req:               updateMetadataReq,
+			},
+			wantResp: &UpdateNvidiaCloudFunctionMetadataResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.UpdateNvidiaCloudFunctionMetadata(tt.args.ctx, tt.args.functionID, tt.args.functionVersionID, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.UpdateNvidiaCloudFunctionMetadata() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.UpdateNvidiaCloudFunctionMetadata() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_ListNvidiaCloudFunctionVersionsWithQuery(t *testing.T) {
+	t.Parallel()
+
+	listNvidiaCloudFunctionVersionsMockRespRaw := fmt.Sprintf(`
+		{
+			"functions": [%s, %s]
+		}
+		`,
+		mockContainerBasedFunctionInfo,
+		mockHelmBasedFunctionInfo)
+	var listNvidiaCloudFunctionVersionsMockResp ListNvidiaCloudFunctionVersionsResponse
+	json.Unmarshal([]byte(listNvidiaCloudFunctionVersionsMockRespRaw), &listNvidiaCloudFunctionVersionsMockResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx        context.Context
+		functionID string
+		limit      int
+		offset     int
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *ListNvidiaCloudFunctionVersionsResponse
+		wantErr  bool
+	}{
+		{
+			name: "ListNvidiaCloudFunctionVersionsWithQuerySuccess",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: &queryParamMockRoundTripper{
+						t:              t,
+						expectedPath:   fmt.Sprintf("/v2/orgs/%s/teams/%s/nvcf/functions/%s/versions", mockOrg, mockTeam, mockFunctionID),
+						expectedMethod: http.MethodGet,
+						expectedQuery: map[string]string{
+							"limit":  "10",
+							"offset": "5",
+						},
+						responseBody: listNvidiaCloudFunctionVersionsMockRespRaw,
+						responseCode: 200,
+					},
+				},
+			},
+			args: args{
+				ctx:        context.Background(),
+				functionID: mockFunctionID,
+				limit:      10,
+				offset:     5,
+			},
+			wantResp: &listNvidiaCloudFunctionVersionsMockResp,
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.ListNvidiaCloudFunctionVersionsWithQuery(tt.args.ctx, tt.args.functionID, tt.args.limit, tt.args.offset)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.ListNvidiaCloudFunctionVersionsWithQuery() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.ListNvidiaCloudFunctionVersionsWithQuery() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+// queryParamMockRoundTripper is a custom mock that verifies query parameters
+type queryParamMockRoundTripper struct {
+	t              *testing.T
+	expectedPath   string
+	expectedMethod string
+	expectedQuery  map[string]string
+	responseBody   string
+	responseCode   int
+}
+
+func (rt *queryParamMockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	assert.Equal(rt.t, rt.expectedMethod, req.Method)
+	assert.Equal(rt.t, rt.expectedPath, req.URL.Path)
+
+	// Verify query parameters
+	for key, expectedValue := range rt.expectedQuery {
+		actualValue := req.URL.Query().Get(key)
+		assert.Equal(rt.t, expectedValue, actualValue, "Query param %s mismatch", key)
+	}
+
+	recorder := httptest.NewRecorder()
+	recorder.Header().Add("Content-Type", "application/json")
+	recorder.WriteString(rt.responseBody)
+	response := recorder.Result()
+	response.StatusCode = rt.responseCode
+	return response, nil
+}
+
+// Test error response with detail field instead of requestStatus
+func TestNVCFClient_ErrorResponseWithDetail(t *testing.T) {
+	t.Parallel()
+
+	errorResponseWithDetail := `{
+		"type": "about:blank",
+		"title": "Bad Request",
+		"status": 400,
+		"detail": "Invalid function configuration",
+		"instance": "/nvcf/functions"
+	}`
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		wantErr    bool
+		wantErrMsg string
+	}{
+		{
+			name: "ErrorResponseWithDetailField",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/functions", mockEndpoint, mockOrg, mockTeam),
+						http.MethodPost,
+						nvcfRequestHeaders,
+						CreateNvidiaCloudFunctionRequest{FunctionName: "test"},
+						errorResponseWithDetail,
+						400,
+					),
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "Invalid function configuration",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			_, err := c.CreateNvidiaCloudFunction(context.Background(), "", CreateNvidiaCloudFunctionRequest{FunctionName: "test"})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && err.Error() != tt.wantErrMsg {
+				t.Errorf("Error message = %v, wantErrMsg %v", err.Error(), tt.wantErrMsg)
+			}
+		})
+	}
+}
+
+// Test endpoint without team
+func TestNVCFClient_EndpointWithoutTeam(t *testing.T) {
+	t.Parallel()
+
+	getFunctionVersionMockRespRaw := fmt.Sprintf(`{"function": %s}`, mockContainerBasedFunctionInfo)
+	var getFunctionVersionMockResp GetNvidiaCloudFunctionVersionResponse
+	json.Unmarshal([]byte(getFunctionVersionMockRespRaw), &getFunctionVersionMockResp)
+
+	// Test that requests work correctly when team is not specified
+	c := &NVCFClient{
+		NgcEndpoint: mockEndpoint,
+		NgcApiKey:   mockApiKey,
+		NgcOrg:      mockOrg,
+		NgcTeam:     "", // No team
+		HttpClient: &http.Client{
+			Transport: GenerateHttpClientMockRoundTripper(
+				t,
+				fmt.Sprintf("%s/v2/orgs/%s/nvcf/functions/%s/versions/%s", mockEndpoint, mockOrg, mockFunctionID, mockVersionID),
+				http.MethodGet,
+				nvcfRequestHeaders,
+				nil,
+				getFunctionVersionMockRespRaw,
+				200,
+			),
+		},
+	}
+
+	gotResp, err := c.GetNvidiaCloudFunctionVersion(context.Background(), mockFunctionID, mockVersionID)
+	assert.NoError(t, err)
+	assert.Equal(t, &getFunctionVersionMockResp, gotResp)
+}
