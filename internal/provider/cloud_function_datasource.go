@@ -50,7 +50,7 @@ type NvidiaCloudFunctionDataSourceModel struct {
 	HealthUri                types.String                            `tfsdk:"health_uri"`
 	Health                   *NvidiaCloudFunctionResourceHealthModel `tfsdk:"health"`
 	APIBodyFormat            types.String                            `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List                              `tfsdk:"deployment_specifications"`
+	DeploymentSpecifications types.Set                               `tfsdk:"deployment_specifications"`
 	Tags                     types.Set                               `tfsdk:"tags"`
 	Description              types.String                            `tfsdk:"description"`
 	Models                   types.Set                               `tfsdk:"models"`
@@ -153,9 +153,9 @@ func (d *NvidiaCloudFunctionDataSource) updateNvidiaCloudFunctionDataSourceModel
 
 			deploymentSpecifications = append(deploymentSpecifications, deploymentSpecification)
 		}
-		deploymentSpecificationsListType, deploymentSpecificationsListTypeDiag := types.ListValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
-		diag.Append(deploymentSpecificationsListTypeDiag...)
-		data.DeploymentSpecifications = deploymentSpecificationsListType
+		deploymentSpecificationsSetType, deploymentSpecificationsSetTypeDiag := types.SetValueFrom(ctx, deploymentSpecificationsSchema().NestedObject.Type(), deploymentSpecifications)
+		diag.Append(deploymentSpecificationsSetTypeDiag...)
+		data.DeploymentSpecifications = deploymentSpecificationsSetType
 	}
 
 	tags, tagsSetFromDiag := types.SetValueFrom(ctx, types.StringType, functionInfo.Tags)
