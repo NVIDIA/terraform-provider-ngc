@@ -102,7 +102,7 @@ type NvidiaCloudFunctionResourceModel struct {
 	HealthUri                types.String   `tfsdk:"health_uri"` // Deprecated
 	Health                   types.Object   `tfsdk:"health"`
 	APIBodyFormat            types.String   `tfsdk:"api_body_format"`
-	DeploymentSpecifications types.List     `tfsdk:"deployment_specifications"`
+	DeploymentSpecifications types.Set      `tfsdk:"deployment_specifications"`
 	Tags                     types.Set      `tfsdk:"tags"`
 	Description              types.String   `tfsdk:"description"`
 	Models                   types.Set      `tfsdk:"models"`
