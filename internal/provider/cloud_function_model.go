@@ -61,6 +61,7 @@ type NvidiaCloudFunctionResourceModelModel struct {
 }
 
 type NvidiaCloudFunctionResourceDeploymentSpecificationModel struct {
+	GpuSpecificationID    types.String `tfsdk:"gpu_specification_id"`
 	GpuType               types.String `tfsdk:"gpu_type"`
 	Backend               types.String `tfsdk:"backend"`
 	MaxInstances          types.Int64  `tfsdk:"max_instances"`
@@ -91,6 +92,7 @@ type NvidiaCloudFunctionResourceModel struct {
 	FunctionID               types.String   `tfsdk:"function_id"`
 	VersionID                types.String   `tfsdk:"version_id"`
 	NcaId                    types.String   `tfsdk:"nca_id"`
+	DeploymentID             types.String   `tfsdk:"deployment_id"`
 	FunctionName             types.String   `tfsdk:"function_name"`
 	InferencePort            types.Int64    `tfsdk:"inference_port"`
 	HelmChart                types.String   `tfsdk:"helm_chart"`

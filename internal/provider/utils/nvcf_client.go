@@ -229,6 +229,7 @@ func (c *NVCFClient) CreateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	return &createNvidiaCloudFunctionDeploymentResponse, err
 }
 
+// Deprecated: Use UpdateGpuSpecification instead.
 func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, functionID string, functionVersionID string, req UpdateNvidiaCloudFunctionDeploymentRequest) (resp *UpdateNvidiaCloudFunctionDeploymentResponse, err error) {
 	var updateNvidiaCloudFunctionDeploymentResponse UpdateNvidiaCloudFunctionDeploymentResponse
 
@@ -237,6 +238,16 @@ func (c *NVCFClient) UpdateNvidiaCloudFunctionDeployment(ctx context.Context, fu
 	err = c.sendRequest(ctx, requestURL, http.MethodPut, req, &updateNvidiaCloudFunctionDeploymentResponse, map[int]bool{200: true}, nil)
 	tflog.Debug(ctx, "Update Function Deployment")
 	return &updateNvidiaCloudFunctionDeploymentResponse, err
+}
+
+func (c *NVCFClient) UpdateGpuSpecification(ctx context.Context, deploymentID string, gpuSpecID string, req UpdateGpuSpecificationRequest) (resp *UpdateGpuSpecificationResponse, err error) {
+	var updateGpuSpecificationResponse UpdateGpuSpecificationResponse
+
+	requestURL := c.NvcfEndpoint(ctx) + "/nvcf/deployments/" + deploymentID + "/gpu-specifications/" + gpuSpecID
+
+	err = c.sendRequest(ctx, requestURL, http.MethodPatch, req, &updateGpuSpecificationResponse, map[int]bool{200: true}, nil)
+	tflog.Debug(ctx, "Update GPU Specification")
+	return &updateGpuSpecificationResponse, err
 }
 
 func (c *NVCFClient) WaitingDeploymentCompleted(ctx context.Context, functionID string, functionVersionId string) error {

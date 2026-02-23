@@ -243,7 +243,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeploySuccess(t 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
-			// Verify Function Update
+			// Verify Function Update (max_instances changed, max_request_concurrency kept same)
 			{
 				Config: fmt.Sprintf(`
 						resource "ngc_cloud_function" "%s" {
@@ -269,7 +269,7 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeploySuccess(t 
 									gpu_type                = "%s"
 									max_instances           = 2
 									min_instances           = 1
-									max_request_concurrency = 2
+									max_request_concurrency = 1
 								}
 							]
 							authorized_parties = [
@@ -325,8 +325,11 @@ func TestAccCloudFunctionResource_CreateHelmBasedFunctionVersionDeploySuccess(t 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration", testutils.TestHelmValueOverWrite),
+
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "deployment_id"),
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_specification_id"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestHelmHealthUri),
@@ -449,7 +452,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeploySucce
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "authorized_parties.#", "0"),
 				),
 			},
-			// Verify Function Update
+			// Verify Function Update (max_instances changed, max_request_concurrency kept same)
 			{
 				Config: fmt.Sprintf(`
 						resource "ngc_cloud_function" "%s" {
@@ -474,7 +477,7 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeploySucce
 									gpu_type                = "%s"
 									max_instances           = 2
 									min_instances           = 1
-									max_request_concurrency = 2
+									max_request_concurrency = 1
 								}
 							]
 							authorized_parties = [
@@ -534,8 +537,11 @@ func TestAccCloudFunctionResource_CreateContainerBasedFunctionVersionDeploySucce
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.instance_type", testutils.TestInstanceType),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_instances", "2"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.min_instances", "1"),
-					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "2"),
+					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.max_request_concurrency", "1"),
 					resource.TestCheckNoResourceAttr(testCloudFunctionResourceFullPath, "deployment_specifications.0.configuration"),
+
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "deployment_id"),
+					resource.TestCheckResourceAttrSet(testCloudFunctionResourceFullPath, "deployment_specifications.0.gpu_specification_id"),
 
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.protocol", "HTTP"),
 					resource.TestCheckResourceAttr(testCloudFunctionResourceFullPath, "health.uri", testutils.TestContainerHealthUri),
