@@ -113,10 +113,17 @@ func (r *NvidiaCloudFunctionResource) updateNvidiaCloudFunctionResourceModelBase
 		data.Description = types.StringValue(functionInfo.Description)
 	}
 
+	if functionDeployment != nil && functionDeployment.DeploymentID != "" {
+		data.DeploymentID = types.StringValue(functionDeployment.DeploymentID)
+	} else if data.DeploymentID.IsUnknown() {
+		data.DeploymentID = types.StringValue("")
+	}
+
 	if functionDeployment != nil && functionDeployment.DeploymentSpecifications != nil {
 		deploymentSpecifications := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
 		for _, v := range functionDeployment.DeploymentSpecifications {
 			deploymentSpecification := NvidiaCloudFunctionResourceDeploymentSpecificationModel{
+				GpuSpecificationID:    types.StringValue(v.GpuSpecificationID),
 				InstanceType:          types.StringValue(v.InstanceType),
 				GpuType:               types.StringValue(v.Gpu),
 				MaxInstances:          types.Int64Value(int64(v.MaxInstances)),
@@ -353,6 +360,13 @@ func deploymentSpecificationsSchema() schema.SetNestedAttribute {
 	return schema.SetNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
+				"gpu_specification_id": schema.StringAttribute{
+					Computed:            true,
+					MarkdownDescription: "GPU Specification ID",
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+					},
+				},
 				"configuration": schema.StringAttribute{
 					MarkdownDescription: "Will be the json definition to overwrite the existing values.yaml file when deploying Helm-Based Functions",
 					Optional:            true,
@@ -384,6 +398,9 @@ func deploymentSpecificationsSchema() schema.SetNestedAttribute {
 				"max_request_concurrency": schema.Int64Attribute{
 					MarkdownDescription: "Max Concurrency Count",
 					Required:            true,
+					PlanModifiers: []planmodifier.Int64{
+						int64planmodifier.RequiresReplace(),
+					},
 				},
 				"clusters": schema.SetAttribute{
 					ElementType:         types.StringType,
@@ -614,6 +631,13 @@ func (r *NvidiaCloudFunctionResource) Schema(ctx context.Context, req resource.S
 			"version_id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Function Version ID",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"deployment_id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Deployment ID",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -1112,7 +1136,7 @@ func (r *NvidiaCloudFunctionResource) Update(ctx context.Context, req resource.U
 		}
 		r.updateNvidiaCloudFunctionResourceModelBaseOnResponse(ctx, &resp.Diagnostics, &plan, function, nil, &authorizedAccounts)
 	} else {
-		deployment := r.updateDeployment(ctx, plan, &resp.Diagnostics)
+		deployment := r.updateDeployment(ctx, plan, state, &resp.Diagnostics)
 
 		if resp.Diagnostics.HasError() {
 			return
@@ -1270,37 +1294,94 @@ func (r *NvidiaCloudFunctionResource) createDeployment(ctx context.Context, data
 	return createNvidiaCloudFunctionDeploymentResponse.Deployment
 }
 
-func (r *NvidiaCloudFunctionResource) updateDeployment(ctx context.Context, data NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics) utils.NvidiaCloudFunctionDeployment {
+func (r *NvidiaCloudFunctionResource) updateDeployment(ctx context.Context, plan NvidiaCloudFunctionResourceModel, state NvidiaCloudFunctionResourceModel, diag *diag.Diagnostics) utils.NvidiaCloudFunctionDeployment {
 	var functionDeployment utils.NvidiaCloudFunctionDeployment
 
-	deploymentSpecificationsOption := r.prepareDeploymentSpecifications(ctx, data, diag)
-	if diag.HasError() || deploymentSpecificationsOption == nil {
+	planSpecs := r.prepareDeploymentSpecifications(ctx, plan, diag)
+	if diag.HasError() || planSpecs == nil {
 		return functionDeployment
 	}
 
-	updateNvidiaCloudFunctionDeploymentResponse, err := r.client.UpdateNvidiaCloudFunctionDeployment(
-		ctx, data.Id.ValueString(), data.VersionID.ValueString(),
-		utils.UpdateNvidiaCloudFunctionDeploymentRequest{
-			DeploymentSpecifications: deploymentSpecificationsOption,
-		},
-	)
+	deploymentID := state.DeploymentID.ValueString()
+	var currentDeployment *utils.ReadNvidiaCloudFunctionDeploymentResponse
+	if deploymentID == "" {
+		var err error
+		currentDeployment, err = r.client.ReadNvidiaCloudFunctionDeployment(
+			ctx, state.Id.ValueString(), state.VersionID.ValueString())
+		if err != nil {
+			diag.AddError("Failed to read deployment for update", err.Error())
+			return functionDeployment
+		}
+		deploymentID = currentDeployment.Deployment.DeploymentID
+	}
 
+	stateSpecs := make([]NvidiaCloudFunctionResourceDeploymentSpecificationModel, 0)
+	diag.Append(state.DeploymentSpecifications.ElementsAs(ctx, &stateSpecs, false)...)
+	if diag.HasError() {
+		return functionDeployment
+	}
+
+	gpuSpecIDMap := buildGpuSpecIDMap(stateSpecs, currentDeployment)
+
+	for _, planSpec := range planSpecs {
+		key := deploymentSpecKey(planSpec)
+		gpuSpecID, ok := gpuSpecIDMap[key]
+		if !ok {
+			diag.AddError("Cannot find GPU specification ID",
+				fmt.Sprintf("No matching deployment spec found for gpu=%s instanceType=%s", planSpec.Gpu, planSpec.InstanceType))
+			return functionDeployment
+		}
+
+		_, err := r.client.UpdateGpuSpecification(ctx, deploymentID, gpuSpecID,
+			utils.UpdateGpuSpecificationRequest{
+				MaxInstances: planSpec.MaxInstances,
+				MinInstances: planSpec.MinInstances,
+			})
+		if err != nil {
+			diag.AddError("Failed to update GPU specification", err.Error())
+			return functionDeployment
+		}
+	}
+
+	err := r.client.WaitingDeploymentCompleted(ctx, state.Id.ValueString(), state.VersionID.ValueString())
 	if err != nil {
-		diag.AddError(
-			"Failed to update Cloud Function Deployment",
-			err.Error(),
-		)
+		diag.AddError("Failed to update Cloud Function Deployment", err.Error())
 		return functionDeployment
 	}
 
-	err = r.client.WaitingDeploymentCompleted(ctx, data.Id.ValueString(), data.VersionID.ValueString())
+	resp, err := r.client.ReadNvidiaCloudFunctionDeployment(
+		ctx, state.Id.ValueString(), state.VersionID.ValueString())
 	if err != nil {
-		diag.AddError(
-			"Failed to update Cloud Function Deployment",
-			err.Error(),
-		)
+		diag.AddError("Failed to read updated deployment", err.Error())
 		return functionDeployment
 	}
+	return resp.Deployment
+}
 
-	return updateNvidiaCloudFunctionDeploymentResponse.Deployment
+func deploymentSpecKey(spec utils.NvidiaCloudFunctionDeploymentSpecification) string {
+	return spec.Gpu + "|" + spec.InstanceType
+}
+
+func buildGpuSpecIDMap(
+	stateSpecs []NvidiaCloudFunctionResourceDeploymentSpecificationModel,
+	fallbackDeployment *utils.ReadNvidiaCloudFunctionDeploymentResponse,
+) map[string]string {
+	m := make(map[string]string)
+
+	for _, s := range stateSpecs {
+		if id := s.GpuSpecificationID.ValueString(); id != "" {
+			key := s.GpuType.ValueString() + "|" + s.InstanceType.ValueString()
+			m[key] = id
+		}
+	}
+
+	if len(m) == 0 && fallbackDeployment != nil {
+		for _, s := range fallbackDeployment.Deployment.DeploymentSpecifications {
+			if s.GpuSpecificationID != "" {
+				m[deploymentSpecKey(s)] = s.GpuSpecificationID
+			}
+		}
+	}
+
+	return m
 }
