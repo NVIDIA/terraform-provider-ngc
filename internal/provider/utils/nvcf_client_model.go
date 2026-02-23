@@ -182,6 +182,7 @@ type UpdateNvidiaCloudFunctionMetadataResponse struct {
 }
 
 type NvidiaCloudFunctionDeploymentSpecification struct {
+	GpuSpecificationID    string      `json:"gpuSpecificationId,omitempty"`
 	Gpu                   string      `json:"gpu"`
 	Backend               string      `json:"backend"`
 	InstanceType          string      `json:"instanceType"`
@@ -194,6 +195,7 @@ type NvidiaCloudFunctionDeploymentSpecification struct {
 }
 
 type NvidiaCloudFunctionDeployment struct {
+	DeploymentID             string                                       `json:"deploymentId,omitempty"`
 	FunctionID               string                                       `json:"functionId"`
 	FunctionVersionID        string                                       `json:"functionVersionId"`
 	NcaID                    string                                       `json:"ncaId"`
@@ -216,6 +218,15 @@ type UpdateNvidiaCloudFunctionDeploymentRequest struct {
 
 type UpdateNvidiaCloudFunctionDeploymentResponse struct {
 	Deployment NvidiaCloudFunctionDeployment `json:"deployment"`
+}
+
+type UpdateGpuSpecificationRequest struct {
+	MaxInstances int `json:"maxInstances"`
+	MinInstances int `json:"minInstances"`
+}
+
+type UpdateGpuSpecificationResponse struct {
+	GpuSpecification NvidiaCloudFunctionDeploymentSpecification `json:"gpuSpecification"`
 }
 
 type ReadNvidiaCloudFunctionDeploymentResponse struct {

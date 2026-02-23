@@ -79,8 +79,11 @@ var mockContainerBasedFunctionInfo = fmt.Sprintf(`
 	mockVersionID,
 )
 
+var mockGpuSpecID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+var mockDeploymentID = "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
 var mockDeploymentSpecification = fmt.Sprintf(`
 	{
+		"gpuSpecificationId": "%s",
 		"gpu": "L40",
 		"backend": "GFN",
 		"maxInstances": 1,
@@ -88,11 +91,12 @@ var mockDeploymentSpecification = fmt.Sprintf(`
 		"instanceType": "gl40_1.br20_2xlarge",
 		"maxRequestConcurrency": 1,
 		"configuration": "{\"image\":{\"repository\":\"nvcr.io/shhh2i6mga69/devinfra/fastapi_echo_sample\",\"tag\":\"latest\"}}"
-	}`)
+	}`, mockGpuSpecID)
 var mockFunctionDeploymentInfo = fmt.Sprintf(
 	`
 	{
 		"deployment" : {
+			"deploymentId": "%s",
 			"functionId": "%s",
 			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
@@ -102,6 +106,7 @@ var mockFunctionDeploymentInfo = fmt.Sprintf(
 		}
 	}
 	`,
+	mockDeploymentID,
 	mockFunctionID,
 	mockVersionID,
 	mockDeploymentSpecification,
@@ -111,6 +116,7 @@ var mockFunctionDeploymentFailedInfo = fmt.Sprintf(
 	`
 	{
 		"deployment" : {
+			"deploymentId": "%s",
 			"functionId": "%s",
 			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
@@ -120,6 +126,7 @@ var mockFunctionDeploymentFailedInfo = fmt.Sprintf(
 		}
 	}
 	`,
+	mockDeploymentID,
 	mockFunctionID,
 	mockVersionID,
 	mockDeploymentSpecification,
@@ -129,6 +136,7 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 	`
 	{
 		"deployment" : {
+			"deploymentId": "%s",
 			"functionId": "%s",
 			"functionVersionID": "%s",
 			"ncaId": "SfDTycz_Y81Iq7rCtGXj4gy93huIjvzQ3ZtNvumZywg",
@@ -138,6 +146,7 @@ var mockFunctionDeploymentActiveInfo = fmt.Sprintf(
 		}
 	}
 	`,
+	mockDeploymentID,
 	mockFunctionID,
 	mockVersionID,
 	mockDeploymentSpecification,
@@ -983,6 +992,128 @@ func TestNVCFClient_UpdateNvidiaCloudFunctionDeployment(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotResp, tt.wantResp) {
 				t.Errorf("NVCFClient.UpdateNvidiaCloudFunctionDeployment() = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNVCFClient_UpdateGpuSpecification(t *testing.T) {
+	t.Parallel()
+
+	var updateGpuSpecReq = UpdateGpuSpecificationRequest{
+		MaxInstances: 2,
+		MinInstances: 1,
+	}
+
+	mockGpuSpecResponse := fmt.Sprintf(`
+	{
+		"gpuSpecification": {
+			"gpuSpecificationId": "%s",
+			"gpu": "L40",
+			"backend": "GFN",
+			"maxInstances": 2,
+			"minInstances": 1,
+			"instanceType": "gl40_1.br20_2xlarge",
+			"maxRequestConcurrency": 1
+		}
+	}`, mockGpuSpecID)
+
+	var updateGpuSpecResp UpdateGpuSpecificationResponse
+	json.Unmarshal([]byte(mockGpuSpecResponse), &updateGpuSpecResp)
+
+	type fields struct {
+		NgcEndpoint string
+		NgcApiKey   string
+		NgcOrg      string
+		NgcTeam     string
+		HttpClient  *http.Client
+	}
+	type args struct {
+		ctx          context.Context
+		deploymentID string
+		gpuSpecID    string
+		req          UpdateGpuSpecificationRequest
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantResp *UpdateGpuSpecificationResponse
+		wantErr  bool
+	}{
+		{
+			name: "UpdateGpuSpecification",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/%s/gpu-specifications/%s", mockEndpoint, mockOrg, mockTeam, mockDeploymentID, mockGpuSpecID),
+						http.MethodPatch,
+						nvcfRequestHeaders,
+						updateGpuSpecReq,
+						mockGpuSpecResponse,
+						200,
+					),
+				},
+			},
+			args: args{
+				ctx:          context.Background(),
+				deploymentID: mockDeploymentID,
+				gpuSpecID:    mockGpuSpecID,
+				req:          updateGpuSpecReq,
+			},
+			wantResp: &updateGpuSpecResp,
+			wantErr:  false,
+		},
+		{
+			name: "UpdateGpuSpecificationFailed",
+			fields: fields{
+				NgcEndpoint: mockEndpoint,
+				NgcApiKey:   mockApiKey,
+				NgcOrg:      mockOrg,
+				NgcTeam:     mockTeam,
+				HttpClient: &http.Client{
+					Transport: GenerateHttpClientMockRoundTripper(
+						t,
+						fmt.Sprintf("%s/v2/orgs/%s/teams/%s/nvcf/deployments/%s/gpu-specifications/%s", mockEndpoint, mockOrg, mockTeam, mockDeploymentID, mockGpuSpecID),
+						http.MethodPatch,
+						nvcfRequestHeaders,
+						updateGpuSpecReq,
+						mockGpuSpecResponse,
+						500,
+					),
+				},
+			},
+			args: args{
+				ctx:          context.Background(),
+				deploymentID: mockDeploymentID,
+				gpuSpecID:    mockGpuSpecID,
+				req:          updateGpuSpecReq,
+			},
+			wantResp: &UpdateGpuSpecificationResponse{},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &NVCFClient{
+				NgcEndpoint: tt.fields.NgcEndpoint,
+				NgcApiKey:   tt.fields.NgcApiKey,
+				NgcOrg:      tt.fields.NgcOrg,
+				NgcTeam:     tt.fields.NgcTeam,
+				HttpClient:  tt.fields.HttpClient,
+			}
+			gotResp, err := c.UpdateGpuSpecification(tt.args.ctx, tt.args.deploymentID, tt.args.gpuSpecID, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NVCFClient.UpdateGpuSpecification() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("NVCFClient.UpdateGpuSpecification() = %v, want %v", gotResp, tt.wantResp)
 			}
 		})
 	}
