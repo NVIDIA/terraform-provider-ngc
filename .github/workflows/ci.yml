@@ -40,7 +40,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -58,7 +58,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -101,7 +101,7 @@ jobs:
     needs: [lint, unit-test]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Required for goreleaser to work properly
 
@@ -112,7 +112,7 @@ jobs:
           cache: true
 
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
@@ -138,16 +138,16 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: build-artifacts
           path: dist/
 
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -159,13 +159,13 @@ jobs:
           skip-dirs: 'vendor,node_modules,dist'
 
       - name: Upload Trivy SARIF report
-        uses: github/codeql-action/upload-sarif@v4.32.0
+        uses: github/codeql-action/upload-sarif@v4.32.4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
       - name: Run TruffleHog secret scan
-        uses: trufflesecurity/trufflehog@v3.92.5
+        uses: trufflesecurity/trufflehog@v3.93.4
         with:
           path: ./
           extra_args: --only-verified
@@ -181,7 +181,7 @@ jobs:
     environment: integration-test
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
