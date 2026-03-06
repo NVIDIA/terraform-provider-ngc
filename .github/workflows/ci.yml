@@ -157,10 +157,11 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           skip-dirs: 'vendor,node_modules,dist'
+          trivy-version: 'v0.62.0'
 
       - name: Upload Trivy SARIF report
         uses: github/codeql-action/upload-sarif@v4.32.4
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
 
