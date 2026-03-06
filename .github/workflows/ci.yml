@@ -147,7 +147,7 @@ jobs:
           path: dist/
 
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload Trivy SARIF report
         uses: github/codeql-action/upload-sarif@v4.32.4
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
 
