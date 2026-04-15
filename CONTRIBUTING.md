@@ -9,7 +9,7 @@
 
 ##### Prerequisites
 
-* Go 1.24+ installed
+* Go 1.25+ installed
 * [golangci-lint](https://golangci-lint.run/usage/install/) v2.8.0+
 * [gotestsum](https://github.com/gotestyourself/gotestsum) for test execution
 * Access to NGC API (for acceptance tests)
