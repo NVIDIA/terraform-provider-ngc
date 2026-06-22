@@ -39,7 +39,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -57,7 +57,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -100,7 +100,7 @@ jobs:
     needs: [lint, unit-test]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Required for goreleaser to work properly
 
@@ -137,7 +137,7 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run TruffleHog secret scan
         uses: trufflesecurity/trufflehog@v3.95.3
@@ -156,7 +156,7 @@ jobs:
     environment: integration-test
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
