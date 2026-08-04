@@ -1,0 +1,20 @@
+version: "1.0"
+project: "terraform-provider-ngc"
+last_updated: "2026-08-04T00:00:00+08:00"
+
+repository_exposure_classification:
+  visibility: "Public"
+  basis: "this repository is public on GitHub, so its contents and full commit history are readable by anyone on the internet, and its releases are consumed directly by external Terraform practitioners"
+  confirmed_by: "huaweic@nvidia.com"
+  date: "2026-08-04"
+
+service_exposure_classification:
+  tier: "External / Regulated"
+  confidence: "high"
+  basis: "externally distributed Terraform provider - .goreleaser.yml publishes signed release archives to this repository's public GitHub releases and to an NVIDIA Artifactory Terraform registry; terraform-registry-manifest.json packages it for Terraform registry consumption; the provider handles customer NGC API keys and third-party observability credentials inside the practitioner process"
+  confirmed_by: "huaweic@nvidia.com"
+  date: "2026-08-04"
+
+false_positives: []
+accepted_risks: []
+suppressed_cves: []
