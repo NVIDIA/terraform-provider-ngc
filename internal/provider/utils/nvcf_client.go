@@ -68,7 +68,9 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		payloadBuf := new(bytes.Buffer)
 		err := json.NewEncoder(payloadBuf).Encode(requestBody)
 		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("failed to parse request body %s", requestBody))
+			// Do not format requestBody into the message: it can carry plaintext
+			// secrets, and Error level is emitted at every TF_LOG level.
+			tflog.Error(ctx, "failed to encode request body")
 			return err
 		}
 		request, _ = http.NewRequest(method, finalURL, payloadBuf)
@@ -89,6 +91,12 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 	defer response.Body.Close()
 	body, _ := io.ReadAll(response.Body)
 
+	// request_body carries NvidiaCloudFunctionSecret.Value in plaintext when a
+	// function declares secrets, and response_body can echo them back. Mask both
+	// so TF_LOG=DEBUG output stays safe to paste into an issue or a CI log.
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "request_body", "response_body")
+	ctx = tflog.SetField(ctx, "request_method", method)
+	ctx = tflog.SetField(ctx, "request_url", finalURL)
 	ctx = tflog.SetField(ctx, "response_status", response.Status)
 	ctx = tflog.SetField(ctx, "response_header", response.Header)
 	ctx = tflog.SetField(ctx, "response_body", string(body))
