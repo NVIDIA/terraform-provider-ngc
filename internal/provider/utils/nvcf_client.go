@@ -117,9 +117,12 @@ func (c *NVCFClient) sendRequest(ctx context.Context, requestURL string, method 
 		err = json.Unmarshal(body, errResponseObject)
 
 		if err != nil {
-			ctx = tflog.SetField(ctx, "response_body", string(body))
+			// The body stays in the (masked) tflog context only. A returned error
+			// is rendered by Terraform via resp.Diagnostics.AddError to the CLI,
+			// which tflog masking does not cover, and an unparseable body can echo
+			// back request data such as NvidiaCloudFunctionSecret.Value.
 			tflog.Error(ctx, "failed to parse error response body")
-			return fmt.Errorf("failed to parse error response body. Response body: %s", string(body))
+			return fmt.Errorf("failed to parse error response body (status %d)", response.StatusCode)
 		}
 
 		if errResponseObject.RequestStatus.StatusDescription != "" {

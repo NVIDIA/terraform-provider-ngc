@@ -2,6 +2,8 @@ package utils
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -82,5 +84,46 @@ func TestEncodeFailureMessageOmitsRequestBody(t *testing.T) {
 	})
 	if strings.Contains(out, logCanary) {
 		t.Fatalf("secret leaked via the error path:\n%s", out)
+	}
+}
+
+// The unexpected-status path returns a Go error. A returned error is NOT the
+// tflog sink: Terraform renders it via resp.Diagnostics.AddError(..., err.Error())
+// straight to the CLI, so tflog.MaskFieldValuesWithFieldKeys cannot redact it.
+// Any response body embedded in that error therefore reaches the console
+// unmasked. Assert the error carries only the status, never the body.
+func TestErrorMessageOmitsResponseBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		// Not valid JSON, so ErrorResponse unmarshalling fails and the
+		// "failed to parse error response body" branch is taken.
+		_, _ = w.Write([]byte("<html>upstream proxy error: token=" + logCanary + "</html>"))
+	}))
+	defer server.Close()
+
+	c := &NVCFClient{
+		NgcEndpoint: server.URL,
+		NgcApiKey:   "MOCK_API_KEY",
+		NgcOrg:      "MOCK_ORG",
+		HttpClient:  server.Client(),
+	}
+
+	err := c.sendRequest(
+		context.Background(),
+		server.URL,
+		http.MethodPost,
+		requestWithSecret(),
+		nil,
+		map[int]bool{http.StatusOK: true},
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected an error for the unexpected status code")
+	}
+	if strings.Contains(err.Error(), logCanary) {
+		t.Fatalf("response body leaked through the returned error: %s", err.Error())
+	}
+	if !strings.Contains(err.Error(), "502") {
+		t.Fatalf("error should still identify the status code, got: %s", err.Error())
 	}
 }

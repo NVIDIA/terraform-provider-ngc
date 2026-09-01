@@ -69,3 +69,45 @@ func TestNGCClient_NVCFClient(t *testing.T) {
 		})
 	}
 }
+
+// Terraform allows several aliased instances of the same provider, each with
+// its own credentials. NVCFClient() must therefore reflect the NGCClient it was
+// called on. A package-level singleton would hand the second alias the first
+// alias's API key, org and endpoint — sending one tenant's key to another
+// tenant's endpoint.
+func TestNGCClient_NVCFClient_PerInstanceCredentials(t *testing.T) {
+	first := &NGCClient{
+		NgcEndpoint: "https://first.example.invalid",
+		NgcApiKey:   "FIRST_API_KEY",
+		NgcOrg:      "FIRST_ORG",
+		NgcTeam:     "FIRST_TEAM",
+		HttpClient:  http.DefaultClient,
+	}
+	second := &NGCClient{
+		NgcEndpoint: "https://second.example.invalid",
+		NgcApiKey:   "SECOND_API_KEY",
+		NgcOrg:      "SECOND_ORG",
+		NgcTeam:     "SECOND_TEAM",
+		HttpClient:  http.DefaultClient,
+	}
+
+	// Order matters: the first call is what a singleton would freeze in place.
+	firstClient := first.NVCFClient()
+	secondClient := second.NVCFClient()
+
+	if firstClient.NgcApiKey != "FIRST_API_KEY" {
+		t.Errorf("first alias got API key %q, want FIRST_API_KEY", firstClient.NgcApiKey)
+	}
+	if secondClient.NgcApiKey != "SECOND_API_KEY" {
+		t.Errorf("second alias got API key %q, want SECOND_API_KEY (credential cross-contamination)", secondClient.NgcApiKey)
+	}
+	if secondClient.NgcEndpoint != "https://second.example.invalid" {
+		t.Errorf("second alias got endpoint %q, want the second alias's endpoint", secondClient.NgcEndpoint)
+	}
+	if secondClient.NgcOrg != "SECOND_ORG" {
+		t.Errorf("second alias got org %q, want SECOND_ORG", secondClient.NgcOrg)
+	}
+	if firstClient == secondClient {
+		t.Error("both aliases share one *NVCFClient; each provider instance must get its own")
+	}
+}
