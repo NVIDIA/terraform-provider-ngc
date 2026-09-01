@@ -12,7 +12,6 @@ package utils
 
 import (
 	"net/http"
-	"sync"
 )
 
 type NGCClient struct {
@@ -23,12 +22,15 @@ type NGCClient struct {
 	HttpClient  *http.Client
 }
 
-var nvcfClient *NVCFClient = nil
-var nvcfClientOnce sync.Once
-
+// NVCFClient returns an NVCF client bound to this NGCClient's credentials.
+//
+// This deliberately does not cache in a package-level singleton. Terraform can
+// instantiate several aliased `ngc` providers in one plugin process, each with
+// its own ngc_api_key, ngc_org and ngc_endpoint; a process-wide singleton would
+// serve every alias the credentials of whichever one happened to configure
+// first, sending one org's key to another org's endpoint. NVCFClient is a small
+// immutable value and shares the caller's *http.Client, so per-instance
+// construction keeps connection pooling and adds no meaningful cost.
 func (c *NGCClient) NVCFClient() *NVCFClient {
-	nvcfClientOnce.Do(func() {
-		nvcfClient = &NVCFClient{c.NgcEndpoint, c.NgcApiKey, c.NgcOrg, c.NgcTeam, c.HttpClient}
-	})
-	return nvcfClient
+	return &NVCFClient{c.NgcEndpoint, c.NgcApiKey, c.NgcOrg, c.NgcTeam, c.HttpClient}
 }

@@ -24,10 +24,12 @@ env:
   GORELEASER_VERSION: 'v2.2.0'
   TEST_REPORT_FILE: report.xml
 
+# Least privilege by default. The `pull-request/N` branches this workflow runs
+# on are copies of external fork PRs made by copy-pr-bot, so every job below can
+# execute untrusted code; only the two jobs that publish a test report are given
+# a token that can write anything, and nothing needs `pull-requests: write`.
 permissions:
   contents: read
-  pull-requests: write
-  checks: write           # Required for dorny/test-reporter
 
 jobs:
   # =============================================================================
@@ -55,6 +57,9 @@ jobs:
   unit-test:
     name: Unit Test
     runs-on: linux-amd64-cpu4
+    permissions:
+      contents: read
+      checks: write           # Required for dorny/test-reporter
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -153,7 +158,18 @@ jobs:
     name: Integration Test
     runs-on: linux-amd64-cpu4
     needs: [lint, unit-test, build, security-scan]
+    # Trust boundary. Reaching this job requires BOTH gates to be satisfied:
+    #   1. copy-pr-bot only creates/updates `pull-request/N` for a given SHA
+    #      after a maintainer comments `/ok to test <sha>` (auto_sync_draft is
+    #      false), so a fork PR does not reach CI on its own; and
+    #   2. the `integration-test` GitHub environment must require reviewers.
+    # Gate 2 is repository configuration and cannot be asserted from this file.
+    # If it is ever removed, gate 1 alone stands between an external
+    # contributor's test code and a live NGC_API_KEY.
     environment: integration-test
+    permissions:
+      contents: read
+      checks: write           # Required for dorny/test-reporter
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

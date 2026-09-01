@@ -119,15 +119,20 @@ Key trust boundaries are:
    `internal/provider/utils/nvcf_client.go` calls
    `tflog.SetField(ctx, "request_body", requestBody)` and
    `tflog.SetField(ctx, "response_body", string(body))` immediately before
-   `tflog.Debug(ctx, "Send request")`. No `tflog.MaskFieldValuesWithFieldKeys`
-   or equivalent masking is registered anywhere in the repository. Because the
+   `tflog.Debug(ctx, "Send request")`. Both fields are now registered with
+   `tflog.MaskFieldValuesWithFieldKeys`, and the error-return paths no longer
+   format either body into the `error` they return — a returned error is
+   rendered to the Terraform CLI through `resp.Diagnostics.AddError` and is not
+   covered by `tflog` masking. Before that hardening, because the
    create/update request bodies for `ngc_cloud_function_telemetry` carry
    `secret.value` and those for `ngc_cloud_function` carry `secrets[].value`,
    any run with debug logging enabled — which `README.md` explicitly instructs
    developers to turn on — persists third-party observability credentials and
    function secrets in plaintext log files and CI job output. The
    `Sensitive: true` schema markers on those attributes suppress them in plan
-   output but do not affect `tflog`.
+   output but do not affect `tflog`. Regression coverage lives in
+   `internal/provider/utils/nvcf_client_logging_test.go`, which includes a
+   deliberate control asserting that the unmasked sequence *does* leak.
 
 3. **Practitioner-controlled endpoint enables silent credential exfiltration.**
    `ngc_endpoint` / `NGC_ENDPOINT` is an unvalidated free-form string that
@@ -139,16 +144,17 @@ Key trust boundaries are:
    `.tfvars` file causes the NGC personal key to be sent, unaltered, to a host
    of the attacker's choosing.
 
-4. **Process-wide client singleton leaks credentials and org scope between
-   provider aliases.** `internal/provider/utils/ngc_client.go` stores the NVCF
-   client in a package-level `nvcfClient` guarded by `nvcfClientOnce sync.Once`,
-   so `NVCFClient()` returns whichever client was constructed first for the
-   lifetime of the plugin process. All four `Configure` implementations go
-   through it. A configuration that declares two aliased `ngc` providers with
-   different `ngc_api_key`, `ngc_org`, or `ngc_endpoint` values will silently
-   drive every resource with the first alias's credentials and org path —
-   creating or destroying NVCF functions in the wrong tenant, or sending one
-   org's key to another org's endpoint.
+4. **Process-wide client singleton leaked credentials and org scope between
+   provider aliases (resolved).** `internal/provider/utils/ngc_client.go`
+   previously stored the NVCF client in a package-level `nvcfClient` guarded by
+   `nvcfClientOnce sync.Once`, so `NVCFClient()` returned whichever client was
+   constructed first for the lifetime of the plugin process. A configuration
+   declaring two aliased `ngc` providers with different `ngc_api_key`,
+   `ngc_org`, or `ngc_endpoint` values silently drove every resource with the
+   first alias's credentials and org path — creating or destroying NVCF
+   functions in the wrong tenant, or sending one org's key to another org's
+   endpoint. `NVCFClient()` now constructs a client per `NGCClient` instance;
+   `TestNGCClient_NVCFClient_PerInstanceCredentials` guards the behaviour.
 
 5. **Secrets are persisted in Terraform state by design.** `secretsSchema()` in
    `internal/provider/cloud_function_resource.go` and the `secret` block in
@@ -165,11 +171,19 @@ Key trust boundaries are:
    `.github/workflows/ci.yml` triggers on `pull-request/[0-9]+` branches. The
    `integration-test` job binds `NGC_API_KEY: ${{ secrets.NGC_API_KEY }}` and
    runs acceptance tests that execute Go test code taken from the branch under
-   test. If a copied PR reaches that job before a maintainer reviews it — or if
-   the `integration-test` GitHub environment lacks required reviewers —
-   attacker-authored test code runs with a live NGC key and can both exfiltrate
-   it and create, mutate, or delete real NVCF functions and telemetry endpoints
-   in the target org.
+   test. Two independent gates stand in front of it: `copy-pr-bot` creates or
+   updates `pull-request/N` only after a maintainer comments `/ok to test <sha>`
+   for that exact SHA (`auto_sync_draft: false`, so a draft PR is not synced
+   automatically), and the `integration-test` GitHub environment must require
+   reviewers. The second gate is repository configuration that this repository's
+   contents cannot assert; if it is absent, a single inattentive `/ok to test`
+   on a PR whose diff touches test code is enough for attacker-authored Go code
+   to run with a live NGC key and both exfiltrate it and create, mutate, or
+   delete real NVCF functions and telemetry endpoints in the target org. As
+   defence in depth, `ci.yml` now defaults to `permissions: contents: read`;
+   `pull-requests: write` was dropped entirely and `checks: write` is granted
+   only to the two jobs that publish a test report, so untrusted code no longer
+   receives a `GITHUB_TOKEN` that can write to pull requests.
 
 7. **Committed test configuration lacks the guard rail that was supposed to
    protect it.** `test-config.env.example` states that "test-config.env is
@@ -180,13 +194,13 @@ Key trust boundaries are:
    repository — and, more importantly, the mechanism intended to stop a real
    `NGC_API_KEY` from ever being committed alongside them is absent.
 
-8. **Leftover scaffolding ships credential-shaped configuration.**
-   `docker_compose/conf.json` and `docker_compose/docker-compose.yaml` are
-   unmodified HashiCorp demo-application scaffolding carrying literal
-   `password=password` values. Nothing in `internal/` or `main.go` references
-   them. They are dead weight that confuses secret scanners, misleads readers
-   about the provider's dependencies, and would become a real weak credential if
-   anyone ever ran the compose file in a shared environment.
+8. **Leftover scaffolding shipped credential-shaped configuration (resolved).**
+   `docker_compose/conf.json` and `docker_compose/docker-compose.yaml` were
+   unmodified HashiCorp demo-application scaffolding (`hashicorpdemoapp/product-api`)
+   carrying literal `password=password` placeholders. Nothing in `internal/` or
+   `main.go` referenced them. The `docker_compose/` directory has been deleted;
+   the values were public template placeholders, never NVIDIA credentials, so
+   there is nothing to rotate.
 
 9. **Public repository disclosure is permanent.** This repository is
    world-readable and every commit ever pushed, including history that has since
@@ -205,20 +219,26 @@ Key trust boundaries are:
 - Terraform state for configurations using this provider is stored in an
   encrypted, access-controlled backend, because the provider deliberately places
   telemetry and function secrets in state.
-- `TF_LOG` / `TF_LOG_PATH` output is treated as secret material and is not
-  archived as a CI artifact, because request and response bodies are logged
-  unmasked.
+- `TF_LOG` / `TF_LOG_PATH` output is still treated as secret material and is not
+  archived as a CI artifact. Request and response bodies are masked and are no
+  longer embedded in returned errors, but masking covers only the fields the
+  provider knows to register.
 - The release branch is protected, releases require review by someone other than
   the author, and the code-signing credentials are not reachable from
   lower-trust pipelines or from unprotected branches.
 - The GitHub `integration-test` environment enforces required reviewers, so
   `copy-pr-bot`-created `pull-request/N` branches cannot reach
-  `secrets.NGC_API_KEY` before a maintainer has read the diff.
+  `secrets.NGC_API_KEY` before a maintainer has read the diff. This is
+  repository configuration and is not verifiable from the repository contents;
+  it must be confirmed by someone with admin access and re-confirmed after any
+  change to environment settings.
 - Consumers verify the published `_SHA256SUMS` and its signature before
   installing the provider; the provider itself performs no self-integrity check.
-- Only one `ngc` provider configuration (or, at minimum, only one credential and
-  one org) is used per Terraform run, because the NVCF client singleton cannot
-  currently distinguish between provider aliases.
+- Aliased `ngc` provider configurations are supported: each `NGCClient`
+  constructs its own NVCF client, so per-alias credentials, orgs and endpoints
+  are honoured. Aliases still share one plugin process, so an `ngc_endpoint`
+  pointing at an attacker-controlled host remains a per-configuration risk
+  (threat 3).
 - Terraform Core, the Go toolchain pinned in `.github/workflows/ci.yml`, and the
   module dependencies tracked in `go.sum` are trusted; the provider relies on
   Dependabot (`.github/dependabot.yml`) rather than any runtime check to keep
